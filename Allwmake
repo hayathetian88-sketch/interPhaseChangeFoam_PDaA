@@ -6,7 +6,7 @@ cd "${0%/*}" || exit                                # Run from this directory
 wmake $targetType phaseChangeTwoPhaseMixtures
 
 wmake $targetType
-wmake $targetType interPhaseChangeDyMFoam
-wmake $targetType overInterPhaseChangeDyMFoam
+#wmake $targetType interPhaseChangeDyMFoam
+#wmake $targetType overInterPhaseChangeDyMFoam
 
 #------------------------------------------------------------------------------
