@@ -69,6 +69,9 @@ protected:
         //- Saturation vapour pressure
         dimensionedScalar pSat_;
 
+        dimensionedScalar nuw_;
+        dimensionedScalar kd_;
+
 
     // Private Member Functions
 
@@ -132,6 +135,15 @@ public:
         {
             return pSat_;
         }
+        const dimensionedScalar& nuw() const
+        {
+            return nuw_;
+        }
+        const dimensionedScalar& kd() const
+        {
+            return kd_;
+        }
+        virtual tmp<volScalarField> rRb(const volScalarField& limitedAlpha1) const = 0;
 
         //- Return the mass condensation and vaporisation rates as a
         //  coefficient to multiply (1 - alphal) for the condensation rate
