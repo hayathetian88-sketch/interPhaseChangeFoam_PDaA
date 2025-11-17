@@ -9,10 +9,9 @@ const dimensionedScalar& nu = mixture->nuw();
 const dimensionedScalar& kd = mixture->kd(); 
 volVectorField gradp = fvc::grad(p_rgh);
 
-// Vs を必ず作る
-volVectorField Vs(
+volVectorField Vvj(
     IOobject(
-        "Vs",
+        "Vvj",
         runTime.timeName(),
         mesh,
         IOobject::READ_IF_PRESENT,
@@ -22,17 +21,17 @@ volVectorField Vs(
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-// Vs の計算
-Vs = ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
+// Vs calculate
+Vvj = ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
 
-// Vs の境界条件
-forAll(Vs.boundaryField(), patchI)
+// Vs boundary condition
+forAll(Vvj.boundaryField(), patchI)
 {
-    Vs.boundaryFieldRef()[patchI] = U.boundaryField()[patchI];
+    Vvj.boundaryFieldRef()[patchI] = U.boundaryField()[patchI];
 }
 
-Vs.correctBoundaryConditions();
-Vs.write();
+Vvj.correctBoundaryConditions();
+Vvj.write();
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 volSymmTensorField taus
@@ -49,5 +48,19 @@ volSymmTensorField taus
     dimensionedSymmTensor("taus", dimStress, symmTensor::zero)
 );
 
-taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
+taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) / limitedAlpha1) * sqr(Vvj);
 taus.write();
+
+volVectorField Vs(
+    IOobject(
+        "Vs",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
+);
+
+Vs = Vvj / limitedAlpha1;

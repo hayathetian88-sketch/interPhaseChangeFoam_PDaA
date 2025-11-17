@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-            #include "VsEqn.H"
-
             #include "alphaControls.H"
+
+            #include "VvjEqn.H"
 
             surfaceScalarField rhoPhi
             (
