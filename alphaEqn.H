@@ -24,9 +24,17 @@
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
           - fvm::Sp(divU, alpha1)
+          + slipcoeff * fv::gaussConvectionScheme<scalar>
+            (
+                mesh,
+                phis,
+                upwind<scalar>(mesh, phis)
+            ).fvmDiv(phis, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
+          + slipcoeff * divphis
+          + fvm::Sp(slipcoeff*divphis,alpha1)
         );
 
         alpha1Eqn.solve();
@@ -44,6 +52,19 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
+        const surfaceScalarField slipPhis
+        (
+            IOobject
+            (
+                "slipPhis",
+                runTime.timeName(),
+                mesh,
+                IOobject::NO_READ,  
+                IOobject::NO_WRITE  
+            ),
+            fvc::interpolate(slipcoeff) * phis 
+        );
+
         tmp<surfaceScalarField> talphaPhiCorr
         (
             fvc::flux
@@ -58,6 +79,22 @@
                 alpha1,
                 alpharScheme
             )
+          + fvc::flux
+            (
+                slipPhis,
+                alpha1,
+                alphaScheme
+            )
+        );
+
+        // calculate slip source term
+        const volScalarField Su_slip = slipcoeff * divphis;
+        const volScalarField Sp_slip = slipcoeff * divphis;
+
+        const volScalarField Sp_total
+        (
+            "Sp_total", 
+            vDotvmcAlphal + Sp_slip
         );
 
         if (MULESCorr)
@@ -73,10 +110,11 @@
                 alpha1,
                 talphaPhi(),
                 talphaPhiCorr.ref(),
-                vDotvmcAlphal,
+                Sp_total,
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
+                  + Su_slip
                 )(),
                 oneField(),
                 zeroField()
@@ -101,14 +139,17 @@
                 alpha1,
                 phi,
                 talphaPhiCorr.ref(),
-                vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal)(),
+                Sp_total,
+                (divU*alpha1 + vDotcAlphal
+                    + Su_slip
+                )(),
                 oneField(),
                 zeroField()
             );
 
             talphaPhi = talphaPhiCorr;
         }
+        // alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
 
         alpha2 = 1.0 - alpha1;
     }

@@ -9,12 +9,17 @@
         phic += (interface.cAlpha()*icAlpha)*fvc::interpolate(mag(U));
     }
 
+    surfaceScalarField phis(fvc::flux(Vvj));
+
     volScalarField divU
     (
         mesh.moving()
       ? fvc::div(phi + mesh.phi())
       : fvc::div(phi)
     );
+    
+    // Not inpliment in dynamic mesh
+    volScalarField divphis(fvc::div(phis));
 
     if (nAlphaSubCycles > 1)
     {

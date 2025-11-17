@@ -22,7 +22,7 @@ volVectorField Vvj(
 );
 
 // Vs calculate
-Vvj = ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
+Vvj = limitedAlpha1 * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
 
 // Vs boundary condition
 forAll(Vvj.boundaryField(), patchI)
@@ -64,3 +64,16 @@ volVectorField Vs(
 );
 
 Vs = Vvj / limitedAlpha1;
+
+volScalarField slipcoeff
+(
+    IOobject
+    (
+        "slipcoeff",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    (rho1 * rho2) / rho
+);
