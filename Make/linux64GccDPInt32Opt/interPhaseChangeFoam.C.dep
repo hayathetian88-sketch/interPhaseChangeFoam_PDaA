@@ -865,6 +865,9 @@ $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/scalarRanges.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/scalarRange.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/scalarRangeI.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/scalarRangesI.H \
+$(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/wallDist.H \
+$(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/patchDistMethod.H \
+$(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/patchDistMethodTemplates.C \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/CMULES.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/MULES.H \
 $(WM_PROJECT_DIR)/src/OpenFOAM/lnInclude/UniformField.H \

@@ -94,6 +94,49 @@ setRefCell
     pRefValue
 );
 
+Info<< "Creating Wall Distance Field (yn)\n" << endl;
+
+volScalarField yn
+(
+    IOobject
+    (
+        "yn",
+        runTime.timeName(),
+        mesh,
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("yn", dimLength, 0.0)
+);
+
+if (yn.headerOk())
+{
+    Info<< "Reading wall distance field yn\n" << endl;
+}
+else
+{
+    Info<< "Calculating wall distance field yn\n" << endl;
+    
+    wallDist y(mesh);
+    yn = y.y();
+}
+
+volScalarField Fyr
+(
+    IOobject
+    (
+        "Fyr",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimless, 0.0)
+   
+);
+
 if (p_rgh.needReference())
 {
     p += dimensionedScalar

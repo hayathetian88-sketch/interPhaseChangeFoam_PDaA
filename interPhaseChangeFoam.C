@@ -46,6 +46,7 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "wallDist.H"
 #include "CMULES.H"
 #include "subCycle.H"
 #include "interfaceProperties.H"

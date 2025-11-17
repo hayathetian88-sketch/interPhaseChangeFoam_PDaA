@@ -6,8 +6,12 @@ tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 const volScalarField& rRb = tRb();
 
 const dimensionedScalar& nu = mixture->nuw(); 
-const dimensionedScalar& kd = mixture->kd(); 
+const dimensionedScalar& kd = mixture->kd();
+const dimensionedScalar& kw = mixture->kw();
 volVectorField gradp = fvc::grad(p_rgh);
+const volScalarField yr = pow(kw,-1.0*yn*rRb);
+
+Fyr = pow4(1 - yr);
 
 volVectorField Vvj(
     IOobject(
@@ -22,7 +26,7 @@ volVectorField Vvj(
 );
 
 // Vs calculate
-Vvj = limitedAlpha1 * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
+Vvj = Fyr * limitedAlpha1 * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu.value() * kd.value()))) * gradp;
 
 // Vs boundary condition
 forAll(Vvj.boundaryField(), patchI)

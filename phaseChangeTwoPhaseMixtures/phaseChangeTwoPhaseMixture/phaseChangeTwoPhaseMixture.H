@@ -71,6 +71,7 @@ protected:
 
         dimensionedScalar nuw_;
         dimensionedScalar kd_;
+        dimensionedScalar kw_;
 
 
     // Private Member Functions
@@ -142,6 +143,10 @@ public:
         const dimensionedScalar& kd() const
         {
             return kd_;
+        }
+        const dimensionedScalar& kw() const
+        {
+            return kw_;
         }
         virtual tmp<volScalarField> rRb(const volScalarField& limitedAlpha1) const = 0;
 

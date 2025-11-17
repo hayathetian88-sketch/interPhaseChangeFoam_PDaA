@@ -49,7 +49,8 @@ Foam::phaseChangeTwoPhaseMixture::phaseChangeTwoPhaseMixture
     phaseChangeTwoPhaseMixtureCoeffs_(optionalSubDict(type + "Coeffs")),
     pSat_("pSat", dimPressure, *this),
     nuw_("nuw", dimensionSet(0,2,-1,0,0,0,0), phaseChangeTwoPhaseMixtureCoeffs_),
-    kd_("kd", dimless, phaseChangeTwoPhaseMixtureCoeffs_)
+    kd_("kd", dimless, phaseChangeTwoPhaseMixtureCoeffs_),
+    kw_("kw", dimless, phaseChangeTwoPhaseMixtureCoeffs_)
 {}
 
 
@@ -86,7 +87,7 @@ bool Foam::phaseChangeTwoPhaseMixture::read()
         readEntry("pSat", pSat_);
         phaseChangeTwoPhaseMixtureCoeffs_.readEntry("nuw", nuw_);
         phaseChangeTwoPhaseMixtureCoeffs_.readEntry("kd", kd_);
-
+        phaseChangeTwoPhaseMixtureCoeffs_.readEntry("kw", kw_);
         return true;
     }
 
