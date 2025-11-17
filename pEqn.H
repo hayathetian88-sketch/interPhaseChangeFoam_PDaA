@@ -34,6 +34,8 @@
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
           - (vDotvP - vDotcP)*(mixture->pSat() - rho*gh)
           + fvm::Sp(vDotvP - vDotcP, p_rgh)
+          - fvc::div(pPlus)
+
         );
 
         p_rghEqn.setReference(pRefCell, pRefValue);

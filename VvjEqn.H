@@ -1,6 +1,6 @@
 const volScalarField limitedAlpha1
 (
-    min(max(alpha1, scalar(0)), scalar(1))
+    min(max(alpha1, scalar(1e-12)), scalar(1))
 );
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 const volScalarField& rRb = tRb();
@@ -31,7 +31,6 @@ forAll(Vvj.boundaryField(), patchI)
 }
 
 Vvj.correctBoundaryConditions();
-Vvj.write();
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 volSymmTensorField taus
@@ -49,7 +48,22 @@ volSymmTensorField taus
 );
 
 taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) / limitedAlpha1) * sqr(Vvj);
-taus.write();
+
+volVectorField pPlus
+(
+    IOobject
+    (
+        "pPlus",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("pPlus", dimVelocity, vector::zero)
+);
+
+pPlus = (((rho1 - rho2) / rho) * (scalar(1) - limitedAlpha1)) * Vvj;
 
 volVectorField Vs(
     IOobject(
