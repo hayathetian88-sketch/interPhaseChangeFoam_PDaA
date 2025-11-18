@@ -165,20 +165,6 @@ volSymmTensorField taus
     dimensionedSymmTensor("taus", dimStress, symmTensor::zero)
 );
 
-volVectorField pPlus
-(
-    IOobject
-    (
-        "pPlus",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedVector("pPlus", dimVelocity, vector::zero)
-);
-
 volVectorField Vs(
     IOobject(
         "Vs",

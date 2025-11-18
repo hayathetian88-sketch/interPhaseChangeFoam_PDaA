@@ -31,8 +31,6 @@ Info<< "Vvj magnitude min: "
 
 taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) / limitedAlpha1) * sqr(Vvj);
 
-pPlus = (((rho1 - rho2) / rho) * (scalar(1) - limitedAlpha1)) * Vvj;
-
 Vs = Vvj / limitedAlpha1;
 
 volScalarField slipcoeff
@@ -50,5 +48,21 @@ volScalarField slipcoeff
 );
 
 slipcoeff = (rho2) / rho;
+
+volScalarField pcoeff
+(
+    IOobject
+    (
+        "pcoeff",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimensionSet(-1, 3, 1, 0, 0, 0, 0), 0.0)
+);
+
+pcoeff = ((rho1 - rho2) / rho) * Fyr * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu * kd)));
 
 Info<< "VvjEqn end" << endl;

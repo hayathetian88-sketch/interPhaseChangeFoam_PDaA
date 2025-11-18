@@ -1,4 +1,12 @@
 {
+    const volScalarField limitedAlpha1
+    (
+        min(max(alpha1, scalar(1e-12)), scalar(1))
+    );
+    
+    const volScalarField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
+    surfaceScalarField pslipf("pslipf",fvc::interpolate(pslipcoeff));
+    
     volScalarField rAU("rAU", 1.0/UEqn.A());
     surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
     volVectorField HbyA(constrainHbyA(rAU*UEqn.H(), U, p_rgh));
@@ -34,7 +42,8 @@
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
           - (vDotvP - vDotcP)*(mixture->pSat() - rho*gh)
           + fvm::Sp(vDotvP - vDotcP, p_rgh)
-          - fvc::div(pPlus)
+          - fvm::laplacian(pslipf,p_rgh)
+          - fvc::div(pslipf,p_rgh)
 
         );
 
