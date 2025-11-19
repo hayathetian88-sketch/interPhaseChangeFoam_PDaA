@@ -118,6 +118,8 @@ int main(int argc, char *argv[])
             #include "alphaEqnSubCycle.H"
             interface.correct();
 
+            //#include "VvjEqn.H"
+
             #include "UEqn.H"
 
             // --- Pressure corrector loop

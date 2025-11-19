@@ -1,3 +1,6 @@
+    limitedAlpha1 = min(max(alpha1, scalar(1e-12)), scalar(1));
+    taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) / limitedAlpha1) * sqr(Vvj);
+    
     fvVectorMatrix UEqn
     (
         fvm::ddt(rho, U)

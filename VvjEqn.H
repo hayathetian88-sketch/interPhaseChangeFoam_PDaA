@@ -1,7 +1,18 @@
-const volScalarField limitedAlpha1
+volScalarField limitedAlpha1
 (
-    min(max(alpha1, scalar(1e-12)), scalar(1))
+    IOobject
+    (
+        "limitedAlpha1",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,    
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("limitedAlpha1Value", dimless, 0.0)
 );
+limitedAlpha1 = min(max(alpha1, scalar(1e-12)), scalar(1));
+
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 const volScalarField& rRb = tRb();
 
@@ -28,8 +39,6 @@ Info<< "Vvj magnitude min: "
     << min(mag(Vvj)).value() << " , max: "
     << max(mag(Vvj)).value() << nl << endl;
 
-
-taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) / limitedAlpha1) * sqr(Vvj);
 
 Vs = Vvj / limitedAlpha1;
 

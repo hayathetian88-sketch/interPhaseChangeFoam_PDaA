@@ -1,9 +1,4 @@
 {
-    const volScalarField limitedAlpha1
-    (
-        min(max(alpha1, scalar(1e-12)), scalar(1))
-    );
-    
     const volScalarField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
     surfaceScalarField pslipf("pslipf",fvc::interpolate(pslipcoeff));
     gradp = fvc::grad(p_rgh);
