@@ -34,7 +34,7 @@
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
           + slipcoeff * divphis
-          - fvm::Sp(slipcoeff*divphis,alpha1)
+          //- fvm::Sp(slipcoeff*divphis,alpha1)
         );
 
         alpha1Eqn.solve();
