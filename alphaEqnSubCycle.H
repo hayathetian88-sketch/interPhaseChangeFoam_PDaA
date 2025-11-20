@@ -19,7 +19,7 @@
     );
     
     // Not inpliment in dynamic mesh
-    volScalarField divphis(fvc::div(phis));
+    volScalarField divphis(fvc::div(Vvj));
 
     if (nAlphaSubCycles > 1)
     {

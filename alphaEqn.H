@@ -34,7 +34,7 @@
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
           + slipcoeff * divphis
-          + fvm::Sp(slipcoeff*divphis,alpha1)
+          - fvm::Sp(slipcoeff*divphis,alpha1)
         );
 
         alpha1Eqn.solve();
@@ -94,7 +94,7 @@
         const volScalarField Sp_total
         (
             "Sp_total", 
-            vDotvmcAlphal + Sp_slip
+            vDotvmcAlphal - Sp_slip
         );
 
         if (MULESCorr)
@@ -114,7 +114,7 @@
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
-                  + Su_slip
+                  - Su_slip
                 )(),
                 oneField(),
                 zeroField()
@@ -141,7 +141,7 @@
                 talphaPhiCorr.ref(),
                 Sp_total,
                 (divU*alpha1 + vDotcAlphal
-                    + Su_slip
+                    - Su_slip
                 )(),
                 oneField(),
                 zeroField()
