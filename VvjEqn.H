@@ -27,14 +27,6 @@ Fyr = pow4(1 - yr);
 // Vs calculate
 Vvj = Fyr * limitedAlpha1 * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu * kd))) * gradp;
 
-// Vs boundary condition
-forAll(Vvj.boundaryField(), patchI)
-{
-    Vvj.boundaryFieldRef()[patchI] = U.boundaryField()[patchI];
-}
-
-Vvj.correctBoundaryConditions();
-
 Info<< "Vvj magnitude min: " 
     << min(mag(Vvj)).value() << " , max: "
     << max(mag(Vvj)).value() << nl << endl;
