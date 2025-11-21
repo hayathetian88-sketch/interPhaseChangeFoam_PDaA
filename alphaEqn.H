@@ -1,6 +1,18 @@
 {
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
+    const surfaceScalarField slipPhis
+        (
+            IOobject
+            (
+                "slipPhis",
+                runTime.timeName(),
+                mesh,
+                IOobject::NO_READ,  
+                IOobject::NO_WRITE  
+            ),
+            fvc::interpolate(slipcoeff) * phis 
+        );
 
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
@@ -27,9 +39,9 @@
           + slipcoeff * fv::gaussConvectionScheme<scalar>
             (
                 mesh,
-                phis,
-                upwind<scalar>(mesh, phis)
-            ).fvmDiv(phis, alpha1)
+                slipPhis,
+                upwind<scalar>(mesh, slipPhis)
+            ).fvmDiv(slipPhis, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
@@ -52,18 +64,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        const surfaceScalarField slipPhis
-        (
-            IOobject
-            (
-                "slipPhis",
-                runTime.timeName(),
-                mesh,
-                IOobject::NO_READ,  
-                IOobject::NO_WRITE  
-            ),
-            fvc::interpolate(slipcoeff) * phis 
-        );
+        
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -89,13 +90,6 @@
 
         // calculate slip source term
         const volScalarField Su_slip = slipcoeff * divphis;
-        const volScalarField Sp_slip = slipcoeff * divphis;
-
-        const volScalarField Sp_total
-        (
-            "Sp_total", 
-            vDotvmcAlphal - Sp_slip
-        );
 
         if (MULESCorr)
         {
@@ -110,7 +104,7 @@
                 alpha1,
                 talphaPhi(),
                 talphaPhiCorr.ref(),
-                Sp_total,
+                vDotvmcAlphal,
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
@@ -139,7 +133,7 @@
                 alpha1,
                 phi,
                 talphaPhiCorr.ref(),
-                Sp_total,
+                vDotvmcAlphal,
                 (divU*alpha1 + vDotcAlphal
                     - Su_slip
                 )(),
