@@ -16,6 +16,9 @@
 
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
+    // calculate slip source term
+    const volScalarField Su_slip = fvc::div(slipPhis);
+
     Pair<tmp<volScalarField>> vDotAlphal =
         mixture->vDotAlphal();
     const volScalarField& vDotcAlphal = vDotAlphal[0]();
@@ -45,7 +48,7 @@
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
-          + slipcoeff * divphis
+          + Su_slip
           //- fvm::Sp(slipcoeff*divphis,alpha1)
         );
 
@@ -88,8 +91,7 @@
             )
         );
 
-        // calculate slip source term
-        const volScalarField Su_slip = slipcoeff * divphis;
+        
 
         if (MULESCorr)
         {
