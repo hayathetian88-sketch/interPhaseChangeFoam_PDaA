@@ -16,7 +16,7 @@ EXE_LIBS = \
     -lfvOptions \
     -lmeshTools \
     -lsampling \
-    -lphaseChangeTwoPhaseMixtures \
+    -lphaseChangeTwoPhaseMixtures_v2025_PDW_1121 \
     -ltwoPhaseMixture \
     -linterfaceProperties \
     -ltwoPhaseProperties \
