@@ -145,7 +145,7 @@
 
             talphaPhi = talphaPhiCorr;
         }
-        // alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
 
         alpha2 = 1.0 - alpha1;
     }
