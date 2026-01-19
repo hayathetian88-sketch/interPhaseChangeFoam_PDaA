@@ -24,15 +24,15 @@ const volScalarField yr = pow(kw,-1.0*yn*rRb);
 
 Fyr = pow4(1 - yr);
 
-// Vs calculate
-Vvj = Fyr * limitedAlpha1 * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu * kd))) * gradp;
+// Vs calculate 16/3 = 5.33333
+Vs = Fyr * ((-5.33333) / (sqr(rRb) * (rho1 * nu * kd))) * gradp;
 
-Info<< "Vvj magnitude min: " 
-    << min(mag(Vvj)).value() << " , max: "
-    << max(mag(Vvj)).value() << nl << endl;
+Info<< "Vs magnitude min: " 
+    << min(mag(Vs)).value() << " , max: "
+    << max(mag(Vs)).value() << nl << endl;
 
 
-Vs = Vvj / limitedAlpha1;
+Vgj = (1 - limitedAlpha1) * Vs ;
 
 volScalarField slipcoeff
 (
@@ -64,6 +64,6 @@ volScalarField pcoeff
     dimensionedScalar("zero", dimensionSet(-1, 3, 1, 0, 0, 0, 0), 0.0)
 );
 
-pcoeff = ((rho1 - rho2) / rho) * Fyr * ((-16.0) / (3.0 * sqr(rRb) * (rho1 * nu * kd)));
+pcoeff = ((rho1 - rho2) / rho) * Fyr * ((-5.33333) / ( sqr(rRb) * (rho1 * nu * kd)));
 
 Info<< "VvjEqn end" << endl;

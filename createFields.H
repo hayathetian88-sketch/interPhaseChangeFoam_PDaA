@@ -137,9 +137,9 @@ volScalarField Fyr
    
 );
 
-volVectorField Vvj(
+volVectorField Vgj(
     IOobject(
-        "Vvj",
+        "Vgj",
         runTime.timeName(),
         mesh,
         IOobject::READ_IF_PRESENT,
