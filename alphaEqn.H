@@ -36,7 +36,7 @@
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
           - fvm::Sp(divU, alpha1)
-          + slipcoeff * fv::gaussConvectionScheme<scalar>
+          + fv::gaussConvectionScheme<scalar>
             (
                 mesh,
                 slipPhis,
