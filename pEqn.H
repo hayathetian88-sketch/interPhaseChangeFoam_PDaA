@@ -1,6 +1,7 @@
 {
-    const volScalarField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
-    surfaceScalarField pslipf("pslipf",fvc::interpolate(pslipcoeff));
+    volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
+    surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
+    volScalarField pslipdiv = fvc::div(pslipf);
     gradp = fvc::grad(p_rgh);
     
     volScalarField rAU("rAU", 1.0/UEqn.A());
@@ -38,7 +39,7 @@
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
           - (vDotvP - vDotcP)*(mixture->pSat() - rho*gh)
           + fvm::Sp(vDotvP - vDotcP, p_rgh)
-          + fvm::laplacian(pslipf,p_rgh)
+          + pslipdiv
         );
 
         p_rghEqn.setReference(pRefCell, pRefValue);

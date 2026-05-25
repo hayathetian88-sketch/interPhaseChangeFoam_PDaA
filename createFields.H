@@ -122,21 +122,6 @@ else
     yn = y.y();
 }
 
-volScalarField Fyr
-(
-    IOobject
-    (
-        "Fyr",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimless, 0.0)
-   
-);
-
 volVectorField Vgj(
     IOobject(
         "Vgj",
@@ -165,6 +150,23 @@ volSymmTensorField taus
     dimensionedSymmTensor("taus", dimStress, symmTensor::zero)
 );
 
+const dimensionSet revdimlength(dimless/dimLength);
+
+volScalarField rRb
+(
+    IOobject
+    (
+        "rRb",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", revdimlength, 0.0)
+);
+
+
 volVectorField Vs(
     IOobject(
         "Vs",
@@ -176,6 +178,77 @@ volVectorField Vs(
     mesh,
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
+
+volScalarField time_coeff
+(
+    IOobject
+    (
+        "time_coeff",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimTime, 0.0)
+);
+
+volVectorField Vt
+(
+    IOobject
+    (
+        "Vt",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
+);
+
+volVectorField Vg
+(
+    IOobject
+    (
+        "Vg",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
+);
+
+volScalarField slipcoeff
+(
+    IOobject
+    (
+        "slipcoeff",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("zero", dimless, 0.0)
+);
+
+volVectorField pcoeff
+(
+    IOobject
+    (
+        "pcoeff",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
+);
+
 
 if (p_rgh.needReference())
 {

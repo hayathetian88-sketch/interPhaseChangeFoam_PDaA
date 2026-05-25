@@ -14,56 +14,40 @@ volScalarField limitedAlpha1
 limitedAlpha1 = min(max(alpha1, scalar(1e-12)), scalar(1));
 
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
-const volScalarField& rRb = tRb();
+rRb = tRb();
 
 const dimensionedScalar& nu = mixture->nuw(); 
 const dimensionedScalar& kd = mixture->kd();
 const dimensionedScalar& kw = mixture->kw();
 volVectorField gradp = fvc::grad(p_rgh);
-const volScalarField yr = pow(kw,-1.0*yn*rRb);
 
-Fyr = pow4(1 - yr);
+time_coeff = (3/8)*(kd*nu)*(rRb*rRb);
+Vt= (16/3)*(1/(kd*rho1*nu))*(1/(rRb*rRb))*gradp;
 
-// Vs calculate 16/3 = 5.33333
-Vs = Fyr * ((-5.33333) / (sqr(rRb) * (rho1 * nu * kd))) * gradp;
+Vg = U + Vs;
+
+surfaceScalarField phiG = phi + fvc::flux(Vs);
+
+fvVectorMatrix VsEqn
+(
+    fvm::ddt(Vs)
+  + fvm::div(phiG, Vs) - fvm::Sp(fvc::div(phiG), Vs)
+  + (Vs & fvc::grad(U))                              
+ ==
+  - fvm::Sp(time_coeff, Vs)
+  + time_coeff * Vt
+);
+
+VsEqn.solve();
 
 Info<< "Vs magnitude min: " 
     << min(mag(Vs)).value() << " , max: "
     << max(mag(Vs)).value() << nl << endl;
 
-
 Vgj = (1 - limitedAlpha1) * Vs ;
-
-volScalarField slipcoeff
-(
-    IOobject
-    (
-        "slipcoeff",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimless, 0.0)
-);
 
 slipcoeff = (rho2) / rho;
 
-volScalarField pcoeff
-(
-    IOobject
-    (
-        "pcoeff",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimensionSet(-1, 3, 1, 0, 0, 0, 0), 0.0)
-);
-
-pcoeff = ((rho1 - rho2) / rho) * Fyr * ((-5.33333) / ( sqr(rRb) * (rho1 * nu * kd)));
+pcoeff = ((rho1 - rho2) / rho) * Vs;
 
 Info<< "VvjEqn end" << endl;
