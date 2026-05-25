@@ -167,16 +167,17 @@ volScalarField rRb
 );
 
 
-volVectorField Vs(
-    IOobject(
+volVectorField Vs
+(
+    IOobject
+    (
         "Vs",
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
-    mesh,
-    dimensionedVector("zero", dimVelocity, vector::zero)
+    mesh
 );
 
 const dimensionSet revdimtime(dimless/dimTime);
