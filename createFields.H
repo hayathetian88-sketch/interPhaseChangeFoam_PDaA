@@ -127,7 +127,7 @@ volVectorField Vgj(
         "Vgj",
         runTime.timeName(),
         mesh,
-        IOobject::READ_IF_PRESENT,
+        IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     mesh,
@@ -172,7 +172,7 @@ volVectorField Vs(
         "Vs",
         runTime.timeName(),
         mesh,
-        IOobject::NO_READ,
+        IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
     mesh,
