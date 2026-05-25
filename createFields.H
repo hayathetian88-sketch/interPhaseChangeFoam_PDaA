@@ -179,6 +179,8 @@ volVectorField Vs(
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
+const dimensionSet revdimtime(dimless/dimTime);
+
 volScalarField time_coeff
 (
     IOobject
@@ -190,7 +192,7 @@ volScalarField time_coeff
         IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("zero", dimTime, 0.0)
+    dimensionedScalar("zero", revdimtime, 0.0)
 );
 
 volVectorField Vt
