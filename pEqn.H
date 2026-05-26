@@ -2,7 +2,9 @@
     volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
     surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
     volScalarField pslipdiv = fvc::div(pslipf);
-    gradp = fvc::grad(p_rgh);
+    Info<< "pslipdiv magnitude min: " 
+    << min(pslipdiv).value() << " , max: "
+    << max(pslipdiv).value() << nl << endl;
     
     volScalarField rAU("rAU", 1.0/UEqn.A());
     surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
@@ -34,6 +36,11 @@
 
     while (pimple.correctNonOrthogonal())
     {
+        volScalarField phaseChangeCoeff("phaseChangeCoeff", vDotvP - vDotcP);
+        volScalarField phaseChangeSource("phaseChangeSource", phaseChangeCoeff * p_rgh);
+        Info<< "PhaseChange Source (Coeff * p_rgh) min: " 
+        << min(phaseChangeSource).value() << " , max: " 
+        << max(phaseChangeSource).value() << nl << endl;
         fvScalarMatrix p_rghEqn
         (
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
