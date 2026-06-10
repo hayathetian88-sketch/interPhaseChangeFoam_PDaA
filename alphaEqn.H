@@ -24,7 +24,7 @@
 
     tmp<surfaceScalarField> talphaPhi;
 
-    volScalarField divUeff = divU - fvc::div(slipPhis);
+    //volScalarField divUeff = divU - fvc::div(slipPhis);
 
     if (MULESCorr)
     {
@@ -37,7 +37,7 @@
                 phi,
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
-          - fvm::Sp(divUeff, alpha1)
+          - fvm::Sp(divU, alpha1)
           - fv::gaussConvectionScheme<scalar>
             (
                 mesh,
@@ -105,7 +105,7 @@
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
                 (
-                    divUeff*(alpha10 - alpha100)
+                    divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
                 )(),
                 oneField(),
@@ -132,7 +132,7 @@
                 phi,
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
-                (divUeff*alpha1 + vDotcAlphal
+                (divU*alpha1 + vDotcAlphal
                 )(),
                 oneField(),
                 zeroField()
