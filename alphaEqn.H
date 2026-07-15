@@ -1,6 +1,8 @@
 {
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
+    surfaceScalarField alphaDownwind = fvc::interpolate(alpha1, -phis, "upwind");
+    surfaceScalarField slipMask = pos0(scalar(0.999) - alphaDownwind);
     const surfaceScalarField slipPhis
         (
             IOobject
@@ -11,7 +13,7 @@
                 IOobject::NO_READ,  
                 IOobject::NO_WRITE  
             ),
-            fvc::interpolate(slipcoeff) * phis 
+            fvc::interpolate(slipcoeff) * phis * slipMask
         );
 
     surfaceScalarField phir("phir", phic*interface.nHatf());

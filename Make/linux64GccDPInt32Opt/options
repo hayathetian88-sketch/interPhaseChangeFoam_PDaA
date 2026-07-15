@@ -1,6 +1,6 @@
 # 1 "Make/options"
-# 1 "<組み込み>"
-# 1 "<コマンドライン>"
+# 1 "<built-in>"
+# 1 "<command-line>"
 
 
 
@@ -33,9 +33,9 @@
 
 
 
-# 6 "<コマンドライン>" 2
+# 6 "<command-line>" 2
 # 1 "Make/options"
 EXE_INC = -I$(LIB_SRC)/finiteVolume/lnInclude -I$(LIB_SRC)/meshTools/lnInclude -I$(LIB_SRC)/sampling/lnInclude -I$(LIB_SRC)/transportModels/twoPhaseMixture/lnInclude -I$(LIB_SRC)/transportModels -I$(LIB_SRC)/transportModels/incompressible/lnInclude -I$(LIB_SRC)/transportModels/interfaceProperties/lnInclude -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude -I$(LIB_SRC)/TurbulenceModels/incompressible/lnInclude -IphaseChangeTwoPhaseMixtures/lnInclude
 # 12 "Make/options"
 
-EXE_LIBS = -L$(FOAM_USER_LIBBIN) -lfiniteVolume -lfvOptions -lmeshTools -lsampling -lphaseChangeTwoPhaseMixtures_v2026_PDA_0609 -ltwoPhaseMixture -linterfaceProperties -ltwoPhaseProperties -lincompressibleTransportModels -lturbulenceModels -lincompressibleTurbulenceModels
+EXE_LIBS = -L$(FOAM_USER_LIBBIN) -lfiniteVolume -lfvOptions -lmeshTools -lsampling -lphaseChangeTwoPhaseMixtures_v2026_PDaAN_0714 -ltwoPhaseMixture -linterfaceProperties -ltwoPhaseProperties -lincompressibleTransportModels -lturbulenceModels -lincompressibleTurbulenceModels

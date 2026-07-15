@@ -134,6 +134,19 @@ volVectorField Vgj(
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
+volScalarField NnucN0
+(
+    IOobject
+    (
+        "NnucN0",
+        runTime.timeName(),
+        mesh,
+        IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 
 volSymmTensorField taus

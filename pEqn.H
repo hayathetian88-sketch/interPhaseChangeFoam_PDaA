@@ -1,6 +1,9 @@
 {
     volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
     surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
+    surfaceScalarField alphaDownwindP = fvc::interpolate(alpha1, -pslipf, "upwind");
+    surfaceScalarField pslipMask = pos0(scalar(0.999) - alphaDownwindP);
+    pslipf *= pslipMask;
     volScalarField pslipdiv = fvc::div(pslipf);
     Info<< "pslipdiv magnitude min: " 
     << min(pslipdiv).value() << " , max: "
