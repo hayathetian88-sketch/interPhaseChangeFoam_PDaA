@@ -141,6 +141,19 @@ volScalarField NnucN0
         "NnucN0",
         runTime.timeName(),
         mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+volScalarField aNnucN0
+(
+    IOobject
+    (
+        "aNnucN0",
+        runTime.timeName(),
+        mesh,
         IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
@@ -188,6 +201,19 @@ volVectorField Vs
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh
+);
+
+volVectorField Vv
+(
+    IOobject
+    (
+        "Vv",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     mesh

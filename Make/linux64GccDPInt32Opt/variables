@@ -1,1 +1,1 @@
-EXE = $(FOAM_USER_APPBIN)/interPhaseChangeFoam_PDaAN_0715
+EXE = $(FOAM_USER_APPBIN)/interPhaseChangeFoam_PDaAN_0715b
