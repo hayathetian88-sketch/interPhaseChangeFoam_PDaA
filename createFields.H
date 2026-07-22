@@ -141,10 +141,11 @@ volScalarField NnucN0
         "NnucN0",
         runTime.timeName(),
         mesh,
-        IOobject::NO_READ,
+        IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
-    mesh
+    mesh,
+    dimensionedScalar("NnucN0", dimless, 1.0)
 );
 
 volScalarField aNnucN0
@@ -216,7 +217,8 @@ volVectorField Vv
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
-    mesh
+    mesh,
+    dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
 const dimensionSet revdimtime(dimless/dimTime);
