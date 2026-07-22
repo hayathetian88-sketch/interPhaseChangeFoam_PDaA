@@ -144,8 +144,7 @@ volScalarField NnucN0
         IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
-    mesh,
-    dimensionedScalar("NnucN0", dimless, 1.0)
+    mesh
 );
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
