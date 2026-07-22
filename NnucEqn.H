@@ -18,20 +18,18 @@ surfaceScalarField phiVv = fvc::interpolate(Vv) & mesh.Sf();
 
 fvScalarMatrix NnucEqn
 (
-    fvm::ddt(aNnucN0)
+    fvm::ddt(NnucN0)
   + fv::gaussConvectionScheme<scalar>
         (
           mesh,
           phiVv,
           upwind<scalar>(mesh, phiVv)
-        ).fvmDiv(phiVv, aNnucN0)
+        ).fvmDiv(phiVv, NnucN0)
 );
 
 NnucEqn.relax();
 NnucEqn.solve();
 
-Info<< "sum(aNnuc)="
-    << fvc::domainIntegrate(aNnucN0)
-    << endl;
-
-NnucN0 = max(0.0 , aNnucN0)/alpha1;
+Info<< "NnucN0 magnitude min: " 
+    << min(mag(NnucN0)).value() << " , max: "
+    << max(mag(NnucN0)).value() << nl << endl;

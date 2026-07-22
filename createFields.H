@@ -148,19 +148,6 @@ volScalarField NnucN0
     dimensionedScalar("NnucN0", dimless, 1.0)
 );
 
-volScalarField aNnucN0
-(
-    IOobject
-    (
-        "aNnucN0",
-        runTime.timeName(),
-        mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
-
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 
 volSymmTensorField taus
