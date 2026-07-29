@@ -42,8 +42,6 @@ Info<< "Vt magnitude min: "
     << min(mag(Vt)).value() << " , max: "
     << max(mag(Vt)).value() << nl << endl;
 
-Vg = U + Vs;
-
 surfaceScalarField phiG = phi + fvc::flux(Vs);
 volTensorField gradUSmooth = fvc::average(fvc::interpolate(fvc::grad(U)));
 fvVectorMatrix VsEqn

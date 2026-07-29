@@ -237,20 +237,6 @@ volVectorField Vt
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-volVectorField Vg
-(
-    IOobject
-    (
-        "Vg",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedVector("zero", dimVelocity, vector::zero)
-);
-
 volScalarField slipcoeff
 (
     IOobject
