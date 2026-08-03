@@ -134,17 +134,30 @@ volVectorField Vgj(
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-volScalarField NnucN0
+volScalarField lnuc
 (
     IOobject
     (
-        "NnucN0",
+        "lnuc",
         runTime.timeName(),
         mesh,
         IOobject::MUST_READ,
         IOobject::AUTO_WRITE
     ),
     mesh
+);
+
+volScalarField Nnuc
+(
+    IOobject
+    (
+        "Nnuc",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    exp(lnuc)* dimensionedScalar("Nnuc_dim", dimless/dimVolume, 1.0)
 );
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));

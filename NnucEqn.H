@@ -1,21 +1,31 @@
 Vv = U + (rho1)/(rho)*alpha1*Vs;
 surfaceScalarField phiVv = fvc::interpolate(Vv) & mesh.Sf();
+surfaceScalarField phiVvj = fvc::interpolate(alpha1*Vs) & mesh.Sf();
+dimensionedScalar aSmall("aSmall", dimless, VSMALL);
 
-fvScalarMatrix NnucEqn
+fvScalarMatrix lnucEqn
 (
-    fvm::ddt(NnucN0)
+    fvm::ddt(lnuc)
   + fv::gaussConvectionScheme<scalar>
-        (
-          mesh,
-          phiVv,
-          upwind<scalar>(mesh, phiVv)
-        ).fvmDiv(phiVv, NnucN0)
-  - fvm::Sp(fvc::div(phi), NnucN0)
+    (
+        mesh,
+        phiVv,
+        upwind<scalar>(mesh, phiVv)
+    ).fvmDiv(phiVv, lnuc)
+  + fvm::SuSp(-fvc::div(phiVv), lnuc)
+  ==
+  - fvc::div(phiVvj)/ max(alpha1, aSmall)
 );
 
-NnucEqn.relax();
-NnucEqn.solve();
+lnucEqn.relax();
+lnucEqn.solve();
+Info<< "lnuc magnitude min: " 
+    << min(mag(lnuc)).value() << " , max: "
+    << max(mag(lnuc)).value() << nl << endl;
 
-Info<< "NnucN0 magnitude min: " 
-    << min(mag(NnucN0)).value() << " , max: "
-    << max(mag(NnucN0)).value() << nl << endl;
+dimensionedScalar Nnuc_dim("Nnuc_dim", dimless/dimVolume, 1.0);
+// Nnucの更新時にも次元を掛ける
+Nnuc = exp(lnuc) * Nnuc_dim;
+Info<< "Nnuc magnitude min: " 
+    << min(mag(Nnuc)).value() << " , max: "
+    << max(mag(Nnuc)).value() << nl << endl;
