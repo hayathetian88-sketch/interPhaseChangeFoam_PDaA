@@ -250,19 +250,19 @@ volVectorField Vt
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-volScalarField slipcoeff
-(
-    IOobject
-    (
-        "slipcoeff",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::NO_WRITE
-    ),
-    mesh,
-    dimensionedScalar("zero", dimless, 0.0)
-);
+// volScalarField slipdot
+// (
+//     IOobject
+//     (
+//         "slipdot",
+//         runTime.timeName(),
+//         mesh,
+//         IOobject::NO_READ,
+//         IOobject::NO_WRITE
+//     ),
+//     mesh,
+//     dimensionedScalar("zero", revdimtime, 0.0)
+// );
 
 volVectorField pcoeff
 (

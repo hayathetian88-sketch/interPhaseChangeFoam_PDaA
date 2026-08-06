@@ -13,9 +13,10 @@
                 IOobject::NO_READ,  
                 IOobject::NO_WRITE  
             ),
-            fvc::interpolate(slipcoeff) * phis * slipMask
+            phis * slipMask / fvc::interpolate(rho)
         );
-
+    
+    // slipdot = rho * fvc::div(slipPhis*alpha1);
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
     Pair<tmp<volScalarField>> vDotAlphal =
@@ -25,8 +26,6 @@
     const volScalarField vDotvmcAlphal(vDotvAlphal - vDotcAlphal);
 
     tmp<surfaceScalarField> talphaPhi;
-
-    //volScalarField divUeff = divU - fvc::div(slipPhis);
 
     if (MULESCorr)
     {
@@ -40,7 +39,8 @@
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
           - fvm::Sp(divU, alpha1)
-          - fv::gaussConvectionScheme<scalar>
+          - rho
+          * fv::gaussConvectionScheme<scalar>
             (
                 mesh,
                 slipPhis,
@@ -82,7 +82,7 @@
                 alpha1,
                 alpharScheme
             )
-          - fvc::flux
+          - fvc::interpolate(rho) * fvc::flux
             (
                 slipPhis,
                 alpha1,
