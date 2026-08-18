@@ -1,4 +1,16 @@
 {
+    volScalarField blockHigh
+    (
+        "blockHigh",
+        pos(alpha1 - scalar(0.99)) * pos(slipTerm)
+    );
+
+    // alpha1<0.01 かつ slipTermが負(さらに0を割らせる方向) → ブロック
+    volScalarField blockLow
+    (
+        "blockLow",
+        pos(scalar(0.01) - alpha1) * neg(slipTerm)
+    );
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
     
@@ -13,7 +25,7 @@
 
     volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2/rho)*Vs);
     surfaceScalarField slipFlux("slipFlux", fvc::flux(slipFluxVec));
-    slipTerm = rho*fvc::div(slipFlux);
+    slipTerm = rho*fvc::div(slipFlux)*(scalar(1) - blockHigh) * (scalar(1) - blockLow);
 
     tmp<surfaceScalarField> talphaPhi;
 
@@ -121,6 +133,11 @@
 
             talphaPhi = talphaPhiCorr;
         }
+        Info<< "Liquid phase volume fraction = "
+        << alpha1.weightedAverage(mesh.V()).value()
+        << "  Min(" << alpha1.name() << ") = " << min(alpha1).value()
+        << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
+        << endl;
         alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
 
         alpha2 = 1.0 - alpha1;
