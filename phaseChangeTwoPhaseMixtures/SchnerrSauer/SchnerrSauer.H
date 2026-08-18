@@ -80,7 +80,7 @@ class SchnerrSauer
         dimensionedScalar p0_;
 
         //- Nucleation site volume-fraction
-        tmp<volScalarField> alphaNuc() const;
+        dimensionedScalar alphaNuc() const;
 
         //- Reciprocal bubble radius
         tmp<volScalarField>rRb(const volScalarField& limitedAlpha1) const;

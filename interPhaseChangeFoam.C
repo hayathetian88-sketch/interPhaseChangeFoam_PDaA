@@ -100,7 +100,6 @@ int main(int argc, char *argv[])
             #include "alphaControls.H"
 
             #include "VvjEqn.H"
-            #include "NnucEqn.H"
 
             surfaceScalarField rhoPhi
             (

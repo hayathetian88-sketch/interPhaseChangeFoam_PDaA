@@ -9,7 +9,7 @@
         phic += (interface.cAlpha()*icAlpha)*fvc::interpolate(mag(U));
     }
 
-    surfaceScalarField phis(fvc::flux(Vgj));
+    // surfaceScalarField phis(fvc::flux(Vgj));
 
     volScalarField divU
     (
@@ -41,7 +41,6 @@
         )
         {
             #include "alphaEqn.H"
-            rho == alpha1*rho1 + alpha2*rho2;
             rhoPhiSum += (runTime.deltaT()/totalDeltaT)*rhoPhi;
         }
 
@@ -50,6 +49,6 @@
     else
     {
         #include "alphaEqn.H"
-        rho == alpha1*rho1 + alpha2*rho2;
     }
+    rho == alpha1*rho1 + alpha2*rho2;
 }

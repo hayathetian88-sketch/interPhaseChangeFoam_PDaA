@@ -11,7 +11,7 @@ volScalarField limitedAlpha1
     mesh,
     dimensionedScalar("limitedAlpha1Value", dimless, 0.0)
 );
-limitedAlpha1 = min(max(alpha1, scalar(1e-12)), scalar(1));
+limitedAlpha1 = min(max(alpha1, scalar(1e-3)), scalar(1));
 
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 rRb = tRb();
@@ -60,7 +60,7 @@ Info<< "Vs magnitude min: "
     << min(mag(Vs)).value() << " , max: "
     << max(mag(Vs)).value() << nl << endl;
 
-Vgj = (1 - limitedAlpha1) * Vs ;
+// Vgj = (1 - limitedAlpha1) * Vs ;
 
 pcoeff = ((rho1 - rho2) / rho) * Vs;
 

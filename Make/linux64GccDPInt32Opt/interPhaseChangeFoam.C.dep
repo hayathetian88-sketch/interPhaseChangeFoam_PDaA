@@ -961,7 +961,6 @@ $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/readTimeControls.H \
 $(WM_PROJECT_DIR)/src/finiteVolume/lnInclude/setDeltaT.H \
 alphaControls.H \
 VvjEqn.H \
-NnucEqn.H \
 alphaEqnSubCycle.H \
 alphaEqn.H \
 UEqn.H \

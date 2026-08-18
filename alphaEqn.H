@@ -1,29 +1,33 @@
 {
+    // 1. セル中心（vol）用のリミッターを定義（0.01〜0.99の範囲外はゼロ）
+    volScalarField slipLimiter("slipLimiter", pos(alpha1 - 0.01) * pos(alpha2 - 0.01));
+
+    // 2. セル界面（surface）用のリミッターに補間
+    surfaceScalarField slipLimiterf("slipLimiterf", fvc::interpolate(slipLimiter));
+    
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
-    surfaceScalarField alphaDownwind = fvc::interpolate(alpha1, -phis, "upwind");
-    surfaceScalarField slipMask = pos0(scalar(0.999) - alphaDownwind);
-    const surfaceScalarField slipPhis
-        (
-            IOobject
-            (
-                "slipPhis",
-                runTime.timeName(),
-                mesh,
-                IOobject::NO_READ,  
-                IOobject::NO_WRITE  
-            ),
-            phis * slipMask / fvc::interpolate(rho)
-        );
-    
-    // slipdot = rho * fvc::div(slipPhis*alpha1);
+    surfaceScalarField phiVs("phiVs", fvc::flux(Vs)*slipLimiterf);
+    surfaceScalarField phiVsAlpha2
+    (
+        "phiVsAlpha2",
+        -fvc::flux(-phiVs, alpha2, alpharScheme)
+    );
+    // volScalarField slipDensityCorr
+    // (
+    //     "slipDensityCorr",
+    //     - alpha1*alpha2*(fvc::grad(rho) & Vs) / rho
+    // );
+    slipDensityCorr = - slipLimiter*alpha1*alpha2*(fvc::grad(rho) & Vs) / rho;
+
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
     Pair<tmp<volScalarField>> vDotAlphal =
         mixture->vDotAlphal();
     const volScalarField& vDotcAlphal = vDotAlphal[0]();
     const volScalarField& vDotvAlphal = vDotAlphal[1]();
-    const volScalarField vDotvmcAlphal(vDotvAlphal - vDotcAlphal);
+    // const volScalarField vDotvmcAlphal(vDotvAlphal - vDotcAlphal);
+    vDotvmcAlphal = vDotvAlphal - vDotcAlphal;
 
     tmp<surfaceScalarField> talphaPhi;
 
@@ -39,19 +43,24 @@
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
           - fvm::Sp(divU, alpha1)
-          - rho
-          * fv::gaussConvectionScheme<scalar>
-            (
-                mesh,
-                slipPhis,
-                upwind<scalar>(mesh, slipPhis)
-            ).fvmDiv(slipPhis, alpha1)
+          - fv::gaussConvectionScheme<scalar>
+          (
+              mesh,
+              phiVsAlpha2,
+              upwind<scalar>(mesh, phiVsAlpha2)
+          ).fvmDiv(phiVsAlpha2, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
+          + slipDensityCorr
         );
 
         alpha1Eqn.solve();
+        
+        Info<< "slipDensityCorr Min = " << min(slipDensityCorr).value()
+        << "  Max = " << max(slipDensityCorr).value() << nl
+        << "vDotcAlphal     Min = " << min(vDotcAlphal).value()
+        << "  Max = " << max(vDotcAlphal).value() << endl;
 
         Info<< "Phase-1 volume fraction = "
             << alpha1.weightedAverage(mesh.Vsc()).value()
@@ -66,7 +75,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        
+
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -82,12 +91,7 @@
                 alpha1,
                 alpharScheme
             )
-          - fvc::interpolate(rho) * fvc::flux
-            (
-                slipPhis,
-                alpha1,
-                alphaScheme
-            )
+            - fvc::flux(-fvc::flux(-phiVs, alpha2, alpharScheme), alpha1, alpharScheme)
         );
 
         
@@ -109,6 +113,7 @@
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
+                  + slipDensityCorr
                 )(),
                 oneField(),
                 zeroField()
@@ -134,7 +139,7 @@
                 phi,
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal
+                (divU*alpha1 + vDotcAlphal + slipDensityCorr
                 )(),
                 oneField(),
                 zeroField()
@@ -157,4 +162,12 @@
         << "  Min(" << alpha1.name() << ") = " << min(alpha1).value()
         << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
         << endl;
+
+    Info
+        << "slipDensityCorr Min = " << min(slipDensityCorr).value()
+        << "  Max = " << max(slipDensityCorr).value() << nl
+        << "vDotvmcAlphal Min = " << min(vDotvmcAlphal).value()
+        << "  Max = " << max(vDotvmcAlphal).value() << nl
+        << "vDotcAlphal     Min = " << min(vDotcAlphal).value()
+        << "  Max = " << max(vDotcAlphal).value() << endl;
 }

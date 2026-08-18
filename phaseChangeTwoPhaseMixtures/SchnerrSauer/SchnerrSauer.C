@@ -76,22 +76,20 @@ Foam::phaseChangeTwoPhaseMixtures::SchnerrSauer::rRb
     const volScalarField& limitedAlpha1
 ) const
 {
-    const volScalarField& Nnuc = alpha1_.db().lookupObject<volScalarField>("Nnuc");
     return pow
     (
-        ((4*constant::mathematical::pi*Nnuc)/3)
+        ((4*constant::mathematical::pi*n_)/3)
        *limitedAlpha1/(1.0 + alphaNuc() - limitedAlpha1),
         1.0/3.0
     );
 }
 
 
-Foam::tmp<Foam::volScalarField>
+Foam::dimensionedScalar
 Foam::phaseChangeTwoPhaseMixtures::SchnerrSauer::alphaNuc() const
 {
-    const volScalarField& Nnuc = alpha1_.db().lookupObject<volScalarField>("Nnuc");
-    volScalarField Vnuc = Nnuc*constant::mathematical::pi*pow3(dNuc_)/6;
-    return Vnuc/(1.0 + Vnuc);
+    dimensionedScalar Vnuc = n_*constant::mathematical::pi*pow3(dNuc_)/6;
+    return Vnuc/(1 + Vnuc);
 }
 
 

@@ -122,43 +122,36 @@ else
     yn = y.y();
 }
 
-volVectorField Vgj(
-    IOobject(
-        "Vgj",
-        runTime.timeName(),
-        mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh,
-    dimensionedVector("zero", dimVelocity, vector::zero)
-);
-
-volScalarField lnuc
-(
-    IOobject
+// DEBUG
+volScalarField slipDensityCorr
     (
-        "lnuc",
-        runTime.timeName(),
+        IOobject
+        (
+            "slipDensityCorr",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+        ),
         mesh,
-        IOobject::MUST_READ,
-        IOobject::AUTO_WRITE
-    ),
-    mesh
-);
+        dimensionedScalar("slipDensityCorr", dimless/dimTime, 0.0) // 次元は [1/s]
+    );
 
-volScalarField Nnuc
-(
-    IOobject
+
+    volScalarField vDotvmcAlphal
     (
-        "Nnuc",
-        runTime.timeName(),
+        IOobject
+        (
+            "vDotvmcAlphal",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+        ),
         mesh,
-        IOobject::NO_READ,
-        IOobject::AUTO_WRITE
-    ),
-    exp(lnuc)* dimensionedScalar("Nnuc_dim", dimless/dimVolume, 1.0)
-);
+        dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
+    );
+//
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 
