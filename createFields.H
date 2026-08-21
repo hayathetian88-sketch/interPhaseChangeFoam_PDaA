@@ -124,33 +124,52 @@ else
 
 // DEBUG
 volScalarField slipTerm
+(
+    IOobject
     (
-        IOobject
-        (
-            "slipTerm",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
-        ),
+        "slipTerm",
+        runTime.timeName(),
         mesh,
-        dimensionedScalar("slipTerm", dimless/dimTime, 0.0) // 次元は [1/s]
-    );
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+    ),
+    mesh,
+    dimensionedScalar("slipTerm", dimless/dimTime, 0.0) // 次元は [1/s]
+);
 
 
-    volScalarField vDotvmcAlphal
+volScalarField vDotvmcAlphal
+(
+    IOobject
     (
-        IOobject
-        (
-            "vDotvmcAlphal",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
-        ),
+        "vDotvmcAlphal",
+        runTime.timeName(),
         mesh,
-        dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
-    );
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+    ),
+    mesh,
+    dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
+);
+volScalarField TotalSourceTerm
+(
+    IOobject
+    (
+        "TotalSourceTerm",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+    ),
+    mesh,
+    dimensionedScalar("TotalSourceTerm", dimless/dimTime, 0.0) // 次元は [1/s]
+);
+volScalarField blockFactor
+(
+    IOobject("blockFactor", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::NO_WRITE),
+    mesh,
+    dimensionedScalar("one", dimless, 1.0)
+);
 //
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));

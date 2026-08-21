@@ -11,7 +11,7 @@ volScalarField limitedAlpha1
     mesh,
     dimensionedScalar("limitedAlpha1Value", dimless, 0.0)
 );
-limitedAlpha1 = min(max(alpha1, scalar(1e-2)), scalar(1));
+limitedAlpha1 = min(max(alpha1, scalar(1e-10)), scalar(1));
 
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 rRb = tRb();
@@ -25,7 +25,7 @@ const dimensionedScalar& kw = mixture->kw();
 
 volVectorField gradp = fvc::grad(p_rgh);
 volScalarField Re_b = (2.0 / rRb) * mag(Vs) / nu;
-volScalarField kd_dynamic = 24.0 * (1.0 + 0.15 * pow(max(Re_b, scalar(1e-5)), 0.687))*pow(limitedAlpha1,-0.5);
+volScalarField kd_dynamic = 24.0 * (1.0 + 0.15 * pow(max(Re_b, scalar(1e-5)), 0.687))*pow(alpha1,-0.5);
 
 time_coeff = (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
 Info<< "time_coeff magnitude min: " 

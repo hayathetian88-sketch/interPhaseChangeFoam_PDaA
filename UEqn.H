@@ -1,10 +1,7 @@
-    limitedAlpha1 = min(max(alpha1, scalar(1e-2)), scalar(1));
-    taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
+    limitedAlpha1 = min(max(alpha1, scalar(1e-3)), scalar(1));
+    taus = blockFactor * (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
     surfaceSymmTensorField tausf = fvc::interpolate(taus);
-    surfaceScalarField alphaDownwind = fvc::interpolate(alpha1, -fvc::flux(Vs), "upwind");
-    surfaceScalarField tauMask = pos0(scalar(0.999) - alphaDownwind);
-    surfaceSymmTensorField maskedTausf = tausf * tauMask;
-    volVectorField divTaus = fvc::surfaceIntegrate(mesh.Sf() & maskedTausf);
+    volVectorField divTaus = fvc::surfaceIntegrate(mesh.Sf() & tausf);
 
     Info<< "taus magnitude min: " 
     << min(mag(taus)).value() << " , max: "

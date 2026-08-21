@@ -1,36 +1,36 @@
 {
-    volScalarField blockHigh
-    (
-        "blockHigh",
-        pos(alpha1 - scalar(0.99)) * pos(slipTerm)
-    );
-
-    // alpha1<0.01 かつ slipTermが負(さらに0を割らせる方向) → ブロック
-    volScalarField blockLow
-    (
-        "blockLow",
-        pos(scalar(0.01) - alpha1) * neg(slipTerm)
-    );
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
-    
+
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
-    Pair<tmp<volScalarField>> vDotAlphal =
-        mixture->vDotAlphal();
-    const volScalarField& vDotcAlphal = vDotAlphal[0]();
-    const volScalarField& vDotvAlphal = vDotAlphal[1]();
-    // const volScalarField vDotvmcAlphal(vDotvAlphal - vDotcAlphal);
-    vDotvmcAlphal = vDotvAlphal - vDotcAlphal;
+    // ★ 生の値(ブロック前)を別名で保持する
+    Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
+    volScalarField vDotcAlphal("vDotcAlphal", vDotAlphal[0]());
+    volScalarField vDotvAlphal("vDotvAlphal", vDotAlphal[1]());
+    volScalarField vDotcAlphal0("vDotcAlphal0", vDotcAlphal);
+    volScalarField vDotvmcAlphal0("vDotvmcAlphal0", vDotvAlphal - vDotcAlphal0);
 
     volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2/rho)*Vs);
     surfaceScalarField slipFlux("slipFlux", fvc::flux(slipFluxVec));
-    slipTerm = rho*fvc::div(slipFlux)*(scalar(1) - blockHigh) * (scalar(1) - blockLow);
+    volScalarField slipTerm0("slipTerm0", rho*fvc::div(slipFlux));
 
     tmp<surfaceScalarField> talphaPhi;
 
     if (MULESCorr)
     {
+        // predictorも生の値(0番)から、その時点(ループ突入前)のalpha1で判定・ブロック
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
+
+        volScalarField blockHighP("blockHighP", pos(alpha1 - scalar(0.9999)) * pos(TotalSourceTerm));
+        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
+        blockFactor = scalar(1) - blockHighP - blockLowP;
+
+        vDotcAlphal = vDotcAlphal0 * blockFactor;
+        vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
+        slipTerm = slipTerm0 * blockFactor;
+        divU = divU * blockFactor;
+
         fvScalarMatrix alpha1Eqn
         (
             fv::EulerDdtScheme<scalar>(mesh).fvmDdt(alpha1)
@@ -62,7 +62,17 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
+        // ★ 毎反復、生の値(0番)とその時点の最新alpha1から判定・ブロックし直す
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
 
+        volScalarField blockHigh("blockHigh", pos(alpha1 - scalar(0.9999)) * pos(TotalSourceTerm));
+        volScalarField blockLow("blockLow", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
+        blockFactor = scalar(1) - blockHigh - blockLow;
+
+        slipTerm      = slipTerm0      * blockFactor;
+        vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
+        vDotcAlphal   = vDotcAlphal0   * blockFactor;
+        divU = divU * blockFactor;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -79,8 +89,6 @@
                 alpharScheme
             )
         );
-
-        
 
         if (MULESCorr)
         {
@@ -105,7 +113,6 @@
                 zeroField()
             );
 
-            // Under-relax the correction for all but the 1st corrector
             if (aCorr == 0)
             {
                 talphaPhi.ref() += talphaPhiCorr();
@@ -125,21 +132,21 @@
                 phi,
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal + slipTerm
-                )(),
+                (divU*alpha1 + vDotcAlphal + slipTerm)(),
                 oneField(),
                 zeroField()
             );
 
             talphaPhi = talphaPhiCorr;
         }
-        Info<< "Liquid phase volume fraction = "
-        << alpha1.weightedAverage(mesh.V()).value()
-        << "  Min(" << alpha1.name() << ") = " << min(alpha1).value()
-        << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
-        << endl;
-        alpha1 = (min(max(alpha1, scalar(0.01)), scalar(1)));
 
+        Info<< "Liquid phase volume fraction = "
+            << alpha1.weightedAverage(mesh.V()).value()
+            << "  Min(" << alpha1.name() << ") = " << min(alpha1).value()
+            << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
+            << endl;
+
+        alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 
@@ -160,5 +167,7 @@
         << "vDotvmcAlphal Min = " << min(vDotvmcAlphal).value()
         << "  Max = " << max(vDotvmcAlphal).value() << nl
         << "vDotcAlphal     Min = " << min(vDotcAlphal).value()
-        << "  Max = " << max(vDotcAlphal).value() << endl;
+        << "  Max = " << max(vDotcAlphal).value() << nl
+        << "blockFactor Min = " << min(blockFactor).value()
+        << "  Max = " << max(blockFactor).value() << endl;
 }
