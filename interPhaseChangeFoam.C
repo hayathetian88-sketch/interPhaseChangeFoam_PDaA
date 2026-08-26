@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     #include "createTimeControls.H"
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
+    #include "UniformField.H"
 
     turbulence->validate();
 

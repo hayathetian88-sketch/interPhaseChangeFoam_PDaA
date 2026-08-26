@@ -11,9 +11,9 @@
     volScalarField vDotcAlphal0("vDotcAlphal0", vDotcAlphal);
     volScalarField vDotvmcAlphal0("vDotvmcAlphal0", vDotvAlphal - vDotcAlphal0);
 
-    volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2/rho)*Vs);
+    volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2*(rho1/rho))*Vs);
     surfaceScalarField slipFlux("slipFlux", fvc::flux(slipFluxVec));
-    volScalarField slipTerm0("slipTerm0", rho*fvc::div(slipFlux));
+    volScalarField slipTerm0("slipTerm0", (rho/rho1)*fvc::div(slipFlux));
 
     tmp<surfaceScalarField> talphaPhi;
 
@@ -21,15 +21,15 @@
     {
         // predictorも生の値(0番)から、その時点(ループ突入前)のalpha1で判定・ブロック
         TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
-
-        volScalarField blockHighP("blockHighP", pos(alpha1 - scalar(0.9999)) * pos(TotalSourceTerm));
+        //volScalarField smoothHigh = max(scalar(0), min(scalar(1), (alpha1 - scalar(0.99)) / scalar(0.01)));
+        //volScalarField smoothLow = max(scalar(0), min(scalar(1), (scalar(0.01) - alpha1) / scalar(0.01)));
+        //volScalarField blockHighP("blockHighP", smoothHigh * pos(TotalSourceTerm));
         volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
-        blockFactor = scalar(1) - blockHighP - blockLowP;
+        blockFactor = scalar(1) - blockLowP;
 
         vDotcAlphal = vDotcAlphal0 * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
         slipTerm = slipTerm0 * blockFactor;
-        divU = divU * blockFactor;
 
         fvScalarMatrix alpha1Eqn
         (
@@ -65,14 +65,15 @@
         // ★ 毎反復、生の値(0番)とその時点の最新alpha1から判定・ブロックし直す
         TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
 
-        volScalarField blockHigh("blockHigh", pos(alpha1 - scalar(0.9999)) * pos(TotalSourceTerm));
-        volScalarField blockLow("blockLow", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
-        blockFactor = scalar(1) - blockHigh - blockLow;
+        //volScalarField smoothHigh = max(scalar(0), min(scalar(1), (alpha1 - scalar(0.99)) / scalar(0.01)));
+        //volScalarField smoothLow = max(scalar(0), min(scalar(1), (scalar(0.01) - alpha1) / scalar(0.01)));
+        //volScalarField blockHighP("blockHighP", smoothHigh * pos(TotalSourceTerm));
+        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
+        blockFactor = scalar(1) - blockLowP;
 
         slipTerm      = slipTerm0      * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
         vDotcAlphal   = vDotcAlphal0   * blockFactor;
-        divU = divU * blockFactor;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -125,6 +126,7 @@
         }
         else
         {
+            //volScalarField alphaMinLimit("alphaMinLimit", alpha1 * 0.0 + 0.01);
             MULES::explicitSolve
             (
                 geometricOneField(),
@@ -134,7 +136,7 @@
                 vDotvmcAlphal,
                 (divU*alpha1 + vDotcAlphal + slipTerm)(),
                 oneField(),
-                zeroField()
+                UniformField<scalar>(0.01)
             );
 
             talphaPhi = talphaPhiCorr;
@@ -146,7 +148,7 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        alpha1 = (min(max(alpha1, scalar(0)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(0.01)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 

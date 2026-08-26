@@ -1,6 +1,6 @@
 {
     volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
-    surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff)* fvc::interpolate(blockFactor));
+    surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
     volScalarField pslipdiv = fvc::div(pslipf);
     Info<< "pslipdiv magnitude min: " 
     << min(pslipdiv).value() << " , max: "
@@ -46,7 +46,7 @@
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
           - (vDotvP - vDotcP)*(mixture->pSat() - rho*gh)
           + fvm::Sp(vDotvP - vDotcP, p_rgh)
-          + pslipdiv
+          + blockFactor*pslipdiv
         );
 
         p_rghEqn.setReference(pRefCell, pRefValue);

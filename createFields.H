@@ -166,7 +166,7 @@ volScalarField TotalSourceTerm
 );
 volScalarField blockFactor
 (
-    IOobject("blockFactor", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::NO_WRITE),
+    IOobject("blockFactor", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
     mesh,
     dimensionedScalar("one", dimless, 1.0)
 );
