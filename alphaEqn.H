@@ -146,7 +146,7 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        alpha1 = (min(max(alpha1, scalar(0.01)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(0.001)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 
