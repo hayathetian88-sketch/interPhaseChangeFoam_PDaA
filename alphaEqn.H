@@ -9,7 +9,7 @@
     volScalarField slipDensityCorr0
     (
         "slipDensityCorr0",
-        - alpha1*alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs)
+        - alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs)
     );
 
     Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
@@ -52,7 +52,7 @@
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
-          + slipDensityCorr
+          + fvm::Sp(slipDensityCorr, alpha1)
         );
 
         alpha1Eqn.solve();
@@ -73,7 +73,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0*alpha1;
 
         volScalarField blockLowP("blockLowP", pos(scalar(1e-9) - alpha1) * neg(TotalSourceTerm));
         blockFactor = scalar(1) - blockLowP;
@@ -82,6 +82,7 @@
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
         vDotcAlphal   = vDotcAlphal0   * blockFactor;
         // ★ divU *= blockFactor; は削除
+        volScalarField Sptotal = vDotvmcAlphal + slipDensityCorr;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -103,11 +104,11 @@
                 alpha1,
                 talphaPhi(),
                 talphaPhiCorr.ref(),
-                vDotvmcAlphal,
+                Sptotal,
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
-                  + slipDensityCorr
+                  + slipDensityCorr*alpha10
                 )(),
                 oneField(),
                 zeroField()
@@ -131,8 +132,8 @@
                 alpha1,
                 phi,
                 talphaPhiCorr.ref(),
-                vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal + slipDensityCorr)(),
+                Sptotal,
+                (divU*alpha1 + vDotcAlphal)(),
                 oneField(),
                 UniformField<scalar>(0.01)
             );
