@@ -3,34 +3,35 @@
     word alpharScheme("div(phirb,alpha)");
 
     surfaceScalarField phir("phir", phic*interface.nHatf());
+    surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
+    surfaceScalarField phiVsAlpha2("phiVsAlpha2", -fvc::flux(-phiVs, alpha2, alpharScheme));
 
-    // ★ 生の値(ブロック前)を別名で保持する
+    volScalarField slipDensityCorr0
+    (
+        "slipDensityCorr0",
+        - alpha1*alpha2*(fvc::grad(rho) & Vs) / rho
+    );
+
     Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
     volScalarField vDotcAlphal("vDotcAlphal", vDotAlphal[0]());
     volScalarField vDotvAlphal("vDotvAlphal", vDotAlphal[1]());
     volScalarField vDotcAlphal0("vDotcAlphal0", vDotcAlphal);
     volScalarField vDotvmcAlphal0("vDotvmcAlphal0", vDotvAlphal - vDotcAlphal0);
 
-    volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2*(rho1/rho))*Vs);
-    surfaceScalarField slipFlux("slipFlux", fvc::flux(slipFluxVec));
-    volScalarField slipTerm0("slipTerm0", (rho/rho1)*fvc::div(slipFlux));
-
     tmp<surfaceScalarField> talphaPhi;
 
     if (MULESCorr)
     {
-        // predictorも生の値(0番)から、その時点(ループ突入前)のalpha1で判定・ブロック
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0 + divU*alpha1;
-        //volScalarField smoothHigh = max(scalar(0), min(scalar(1), (alpha1 - scalar(0.99)) / scalar(0.01)));
-        //volScalarField smoothLow = max(scalar(0), min(scalar(1), (scalar(0.01) - alpha1) / scalar(0.01)));
-        //volScalarField blockHighP("blockHighP", smoothHigh * pos(TotalSourceTerm));
+        // ★ divUは判定式から除外
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0;
+
         volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
         blockFactor = scalar(1) - blockLowP;
 
         vDotcAlphal = vDotcAlphal0 * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
-        slipTerm = slipTerm0 * blockFactor;
-        divU *= blockFactor;
+        slipDensityCorr = slipDensityCorr0 * blockFactor;
+        // ★ divU *= blockFactor; は削除
 
         fvScalarMatrix alpha1Eqn
         (
@@ -42,13 +43,22 @@
                 upwind<scalar>(mesh, phi)
             ).fvmDiv(phi, alpha1)
           - fvm::Sp(divU, alpha1)
+          - fv::gaussConvectionScheme<scalar>
+            (
+                mesh,
+                phiVsAlpha2,
+                upwind<scalar>(mesh, phiVsAlpha2)
+            ).fvmDiv(phiVsAlpha2, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
-          + slipTerm
+          + slipDensityCorr
         );
 
         alpha1Eqn.solve();
+
+        Info<< "slipDensityCorr Min = " << min(slipDensityCorr).value()
+            << "  Max = " << max(slipDensityCorr).value() << nl;
 
         Info<< "Phase-1 volume fraction = "
             << alpha1.weightedAverage(mesh.Vsc()).value()
@@ -63,34 +73,21 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        // ★ 毎反復、生の値(0番)とその時点の最新alpha1から判定・ブロックし直す
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0+ divU*alpha1;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0;
 
-        //volScalarField smoothHigh = max(scalar(0), min(scalar(1), (alpha1 - scalar(0.99)) / scalar(0.01)));
-        //volScalarField smoothLow = max(scalar(0), min(scalar(1), (scalar(0.01) - alpha1) / scalar(0.01)));
-        //volScalarField blockHighP("blockHighP", smoothHigh * pos(TotalSourceTerm));
-        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
+        volScalarField blockLowP("blockLowP", pos(scalar(0.011) - alpha1) * neg(TotalSourceTerm));
         blockFactor = scalar(1) - blockLowP;
 
-        slipTerm      = slipTerm0      * blockFactor;
+        slipDensityCorr = slipDensityCorr0 * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
         vDotcAlphal   = vDotcAlphal0   * blockFactor;
-        divU *= blockFactor;
+        // ★ divU *= blockFactor; は削除
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
-            fvc::flux
-            (
-                phi,
-                alpha1,
-                alphaScheme
-            )
-          + fvc::flux
-            (
-                -fvc::flux(-phir, alpha2, alpharScheme),
-                alpha1,
-                alpharScheme
-            )
+            fvc::flux(phi, alpha1, alphaScheme)
+          + fvc::flux(-fvc::flux(-phir, alpha2, alpharScheme), alpha1, alpharScheme)
+          - fvc::flux(-fvc::flux(-phiVs, alpha2, alpharScheme), alpha1, alpharScheme)
         );
 
         if (MULESCorr)
@@ -110,7 +107,7 @@
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
-                  + slipTerm
+                  + slipDensityCorr
                 )(),
                 oneField(),
                 zeroField()
@@ -128,7 +125,6 @@
         }
         else
         {
-            //volScalarField alphaMinLimit("alphaMinLimit", alpha1 * 0.0 + 0.01);
             MULES::explicitSolve
             (
                 geometricOneField(),
@@ -136,7 +132,7 @@
                 phi,
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal + slipTerm)(),
+                (divU*alpha1 + vDotcAlphal + slipDensityCorr)(),
                 oneField(),
                 UniformField<scalar>(0.01)
             );
@@ -155,20 +151,17 @@
     }
 
     rhoPhi = talphaPhi()*(rho1 - rho2) + phi*rho2;
-
-    // Cache alphaPhi
     alphaPhi10 = talphaPhi();
 
-    Info<< "Liquid phase volume fraction = "
+    Info<< "slipDensityCorr Min = " << min(slipDensityCorr).value()
+        << "  Max = " << max(slipDensityCorr).value() << nl
+        << "Liquid phase volume fraction = "
         << alpha1.weightedAverage(mesh.V()).value()
         << "  Min(" << alpha1.name() << ") = " << min(alpha1).value()
         << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
         << endl;
 
-    Info
-        << "slipTerm Min = " << min(slipTerm).value()
-        << "  Max = " << max(slipTerm).value() << nl
-        << "vDotvmcAlphal Min = " << min(vDotvmcAlphal).value()
+    Info<< "vDotvmcAlphal Min = " << min(vDotvmcAlphal).value()
         << "  Max = " << max(vDotvmcAlphal).value() << nl
         << "vDotcAlphal     Min = " << min(vDotcAlphal).value()
         << "  Max = " << max(vDotcAlphal).value() << nl

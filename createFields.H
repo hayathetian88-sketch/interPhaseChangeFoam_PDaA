@@ -123,18 +123,18 @@ else
 }
 
 // DEBUG
-volScalarField slipTerm
+volScalarField slipDensityCorr
 (
     IOobject
     (
-        "slipTerm",
+        "slipDensityCorr",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+        IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("slipTerm", dimless/dimTime, 0.0) // 次元は [1/s]
+    dimensionedScalar("slipDensityCorr", dimless/dimTime, 0.0) // 次元は [1/s]
 );
 
 
@@ -146,7 +146,7 @@ volScalarField vDotvmcAlphal
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+        IOobject::AUTO_WRITE
     ),
     mesh,
     dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
@@ -159,7 +159,7 @@ volScalarField TotalSourceTerm
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // ★ これで時間ディレクトリに書き出されます
+        IOobject::AUTO_WRITE
     ),
     mesh,
     dimensionedScalar("TotalSourceTerm", dimless/dimTime, 0.0) // 次元は [1/s]
