@@ -16,7 +16,7 @@
     volScalarField slipTerm0("slipTerm0", (rho/rho1)*fvc::div(slipFlux));
 
     // ★ 総ソース量制限のための定数
-    dimensionedScalar maxDalpha("maxDalpha", dimless, 0.1);
+    dimensionedScalar maxDalpha("maxDalpha", dimless, 0.01);
     dimensionedScalar rDeltaT("rDeltaT", dimless/dimTime, 1.0/runTime.deltaTValue());
 
     tmp<surfaceScalarField> talphaPhi;
