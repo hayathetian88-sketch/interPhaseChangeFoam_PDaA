@@ -9,7 +9,7 @@
     volScalarField slipDensityCorr0
     (
         "slipDensityCorr0",
-        - alpha1*alpha2*(fvc::grad(rho) & Vs) / rho
+        - alpha1*alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs)
     );
 
     Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
@@ -25,8 +25,8 @@
         // ★ divUは判定式から除外
         TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0;
 
-        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
-        blockFactor = scalar(1) - blockLowP;
+        volScalarField blockLowP("blockLowP", pos(scalar(1e-9) - alpha1) * neg(TotalSourceTerm));
+        blockFactor = scalar(1e-3)*(scalar(1) - blockLowP);
 
         vDotcAlphal = vDotcAlphal0 * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
@@ -75,7 +75,7 @@
     {
         TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0;
 
-        volScalarField blockLowP("blockLowP", pos(scalar(0.011) - alpha1) * neg(TotalSourceTerm));
+        volScalarField blockLowP("blockLowP", pos(scalar(1e-9) - alpha1) * neg(TotalSourceTerm));
         blockFactor = scalar(1) - blockLowP;
 
         slipDensityCorr = slipDensityCorr0 * blockFactor;
