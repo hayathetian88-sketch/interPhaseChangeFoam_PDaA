@@ -17,7 +17,10 @@
 
     // ★ 総ソース量制限のための定数
     dimensionedScalar maxDalpha("maxDalpha", dimless, 0.01);
-    dimensionedScalar rDeltaT("rDeltaT", dimless/dimTime, 1.0/runTime.deltaTValue());
+    dimensionedScalar rDeltaT("rDeltaT", dimless/dimTime, 1.0/runTime.deltaT().value());
+    Info<< "maxDalpha = " << maxDalpha.value()
+    << ", rDeltaT = " << rDeltaT.value()
+    << endl;
 
     tmp<surfaceScalarField> talphaPhi;
 
@@ -31,7 +34,7 @@
             maxDalpha*rDeltaT
           / (mag(TotalSourceTerm) + dimensionedScalar("small", TotalSourceTerm.dimensions(), SMALL)),
             scalar(1)
-        );
+        )*pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm);
 
         vDotcAlphal   = vDotcAlphal0   ;
         vDotvmcAlphal = vDotvmcAlphal0 ;
@@ -77,7 +80,7 @@
             maxDalpha*rDeltaT
           / (mag(TotalSourceTerm) + dimensionedScalar("small", TotalSourceTerm.dimensions(), SMALL)),
             scalar(1)
-        );
+        )*pos(scalar(0.011) - alpha1) * neg(TotalSourceTerm);
 
         slipTerm      = slipTerm0      * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 ;
