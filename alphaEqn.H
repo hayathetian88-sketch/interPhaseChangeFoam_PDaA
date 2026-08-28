@@ -23,7 +23,7 @@
 
     if (MULESCorr)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0+divU*alpha1;
 
         // ★ 総量制限のみ(下限ブロックは外す)
         blockFactor = min
@@ -36,6 +36,7 @@
         vDotcAlphal   = vDotcAlphal0   ;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         slipTerm      = slipTerm0      * blockFactor;
+        divU *= blockFactor;
 
         fvScalarMatrix alpha1Eqn
         (
@@ -68,7 +69,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0 + divU*alpha1;
 
         // ★ 総量制限のみ、毎反復その時点のalpha1で再評価
         blockFactor = min
@@ -81,6 +82,7 @@
         slipTerm      = slipTerm0      * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         vDotcAlphal   = vDotcAlphal0   ;
+        divU *= blockFactor;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -142,7 +144,7 @@
                 vDotvmcAlphal,
                 (divU*alpha1 + vDotcAlphal + slipTerm)(),
                 oneField(),
-                UniformField<scalar>(0.01)
+                UniformField<scalar>(0.0)
             );
 
             talphaPhi = talphaPhiCorr;

@@ -31,8 +31,8 @@
     constrainPressure(p_rgh, U, phiHbyA, rAUf);
 
     Pair<tmp<volScalarField>> vDotP = mixture->vDotP();
-    volScalarField vDotcP("vDotcP", vDotP[0]());
-    volScalarField vDotvP("vDotvP", vDotP[1]());
+    volScalarField vDotcP("vDotcP", vDotP[0]()*blockFactor);
+    volScalarField vDotvP("vDotvP", vDotP[1]()*blockFactor);
 
     while (pimple.correctNonOrthogonal())
     {
