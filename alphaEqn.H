@@ -14,6 +14,7 @@
     volVectorField slipFluxVec("slipFluxVec", (alpha1*alpha2*(rho1/rho))*Vs);
     surfaceScalarField slipFlux("slipFlux", fvc::flux(slipFluxVec));
     volScalarField slipTerm0("slipTerm0", (rho/rho1)*fvc::div(slipFlux));
+    volScalarField divU0("divU0", divU); 
 
     // ★ 総ソース量制限のための定数
     dimensionedScalar maxDalpha("maxDalpha", dimless, 0.01);
@@ -26,7 +27,7 @@
 
     if (MULESCorr)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0+divU*alpha1;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0+divU0*alpha1;
 
         // ★ 総量制限のみ(下限ブロックは外す)
         blockFactor = min
@@ -39,7 +40,7 @@
         vDotcAlphal   = vDotcAlphal0   ;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         slipTerm      = slipTerm0      * blockFactor;
-        divU *= blockFactor;
+        divU = divU0 * blockFactor;
 
         fvScalarMatrix alpha1Eqn
         (
@@ -72,7 +73,7 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0 + divU*alpha1;
+        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipTerm0 + divU0*alpha1;
 
         // ★ 総量制限のみ、毎反復その時点のalpha1で再評価
         blockFactor = min
@@ -85,7 +86,7 @@
         slipTerm      = slipTerm0      * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         vDotcAlphal   = vDotcAlphal0   ;
-        divU *= blockFactor;
+        divU = divU0 * blockFactor;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
