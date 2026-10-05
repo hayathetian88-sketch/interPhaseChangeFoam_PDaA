@@ -40,7 +40,7 @@
         vDotcAlphal   = vDotcAlphal0   ;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         slipTerm      = slipTerm0      * blockFactor;
-        divU = divU0 * blockFactor;
+        divU = divU0;
 
         fvScalarMatrix alpha1Eqn
         (
@@ -86,7 +86,7 @@
         slipTerm      = slipTerm0      * blockFactor;
         vDotvmcAlphal = vDotvmcAlphal0 ;
         vDotcAlphal   = vDotcAlphal0   ;
-        divU = divU0 * blockFactor;
+        divU = divU0;
 
         tmp<surfaceScalarField> talphaPhiCorr
         (
@@ -160,7 +160,7 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        alpha1 = (min(max(alpha1, scalar(0.01)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(0.0)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 
