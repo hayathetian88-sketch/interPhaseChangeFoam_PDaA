@@ -151,24 +151,70 @@ volScalarField vDotvmcAlphal
     mesh,
     dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
 );
-volScalarField TotalSourceTerm
+volScalarField vDotvAlphal
 (
     IOobject
     (
-        "TotalSourceTerm",
+        "vDotvAlphal",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
         IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("TotalSourceTerm", dimless/dimTime, 0.0) // 次元は [1/s]
+    dimensionedScalar("vDotvAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
 );
-volScalarField blockFactor
+volScalarField vDotcAlphal
 (
-    IOobject("blockFactor", runTime.timeName(), mesh, IOobject::NO_READ, IOobject::AUTO_WRITE),
+    IOobject
+    (
+        "vDotcAlphal",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
     mesh,
-    dimensionedScalar("one", dimless, 1.0)
+    dimensionedScalar("vDotcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
+);
+volScalarField vDotcP
+(
+    IOobject
+    (
+        "vDotcP",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+    ),
+    mesh,
+    dimensionedScalar("vDotcP", dimless/dimTime/dimPressure, 0.0) // 次元は [1/(Pa・s)]
+);
+volScalarField vDotvP
+(
+    IOobject
+    (
+        "vDotvP",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+    ),
+    mesh,
+    dimensionedScalar("vDotvP", dimless/dimTime/dimPressure, 0.0) // 次元は [1/(Pa・s)]
+);
+volScalarField pslipdiv
+(
+    IOobject
+    (
+        "pslipdiv",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+    ),
+    mesh,
+    dimensionedScalar("pslipdiv", dimless/dimTime, 0.0) // 次元は [1/(Pa・s)]
 );
 //
 

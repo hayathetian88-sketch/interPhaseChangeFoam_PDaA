@@ -1,5 +1,5 @@
     limitedAlpha1 = min(max(alpha1, scalar(1e-3)), scalar(1));
-    taus = blockFactor * (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
+    taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
     surfaceSymmTensorField tausf = fvc::interpolate(taus);
     volVectorField divTaus = fvc::surfaceIntegrate(mesh.Sf() & tausf);
 

@@ -4,36 +4,23 @@
 
     surfaceScalarField phir("phir", phic*interface.nHatf());
     surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
-    surfaceScalarField phiVsAlpha2("phiVsAlpha2", -fvc::flux(-phiVs, alpha2, alpharScheme));
+    forAll(phiVs.boundaryField(), patchi)
+    {
+        phiVs.boundaryFieldRef()[patchi] = 0.0;
+    }
+    surfaceScalarField phiVsAlpha2("phiVsAlpha2", fvc::flux(phiVs, alpha2, alpharScheme));
 
-    volScalarField slipDensityCorr0
-    (
-        "slipDensityCorr0",
-        - alpha1*alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs)
-    );
+    slipDensityCorr = alpha1*alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs);
 
     Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
-    volScalarField vDotcAlphal("vDotcAlphal", vDotAlphal[0]());
-    volScalarField vDotvAlphal("vDotvAlphal", vDotAlphal[1]());
-    volScalarField vDotcAlphal0("vDotcAlphal0", vDotcAlphal);
-    volScalarField vDotvmcAlphal0("vDotvmcAlphal0", vDotvAlphal - vDotcAlphal0);
+    vDotcAlphal = vDotAlphal[0]();
+    vDotvAlphal = vDotAlphal[1]();
+    vDotvmcAlphal = vDotvAlphal - vDotcAlphal;
 
     tmp<surfaceScalarField> talphaPhi;
 
     if (MULESCorr)
     {
-        // ★ divUは判定式から除外
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0*alpha1;
-
-        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
-        // limitter発動で生成項を1/1000倍する
-        blockFactor = scalar(1) - scalar(0.99999)*blockLowP;
-
-        vDotcAlphal = vDotcAlphal0 * blockFactor;
-        vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
-        slipDensityCorr = slipDensityCorr0 * blockFactor;
-        // ★ divU *= blockFactor; は削除
-
         fvScalarMatrix alpha1Eqn
         (
             fv::EulerDdtScheme<scalar>(mesh).fvmDdt(alpha1)
@@ -53,7 +40,7 @@
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
-          + slipDensityCorr
+          - slipDensityCorr
         );
 
         alpha1Eqn.solve();
@@ -74,21 +61,11 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        TotalSourceTerm = vDotvmcAlphal0*alpha1 + vDotcAlphal0 + slipDensityCorr0*alpha1;
-
-        volScalarField blockLowP("blockLowP", pos(scalar(0.01) - alpha1) * neg(TotalSourceTerm));
-        blockFactor = scalar(1) - scalar(0.99999)*blockLowP;
-
-        slipDensityCorr = slipDensityCorr0 * blockFactor;
-        vDotvmcAlphal = vDotvmcAlphal0 * blockFactor;
-        vDotcAlphal   = vDotcAlphal0   * blockFactor;
-        // ★ divU *= blockFactor; は削除
-
         tmp<surfaceScalarField> talphaPhiCorr
         (
             fvc::flux(phi, alpha1, alphaScheme)
           + fvc::flux(-fvc::flux(-phir, alpha2, alpharScheme), alpha1, alpharScheme)
-          - fvc::flux(-fvc::flux(-phiVs, alpha2, alpharScheme), alpha1, alpharScheme)
+          - fvc::flux(fvc::flux(phiVs, alpha2, alpharScheme), alpha1, alpharScheme)
         );
 
         if (MULESCorr)
@@ -108,7 +85,6 @@
                 (
                     divU*(alpha10 - alpha100)
                   - vDotvmcAlphal*alpha10
-                  + slipDensityCorr
                 )(),
                 oneField(),
                 zeroField()
@@ -133,9 +109,9 @@
                 phi,
                 talphaPhiCorr.ref(),
                 vDotvmcAlphal,
-                (divU*alpha1 + vDotcAlphal+slipDensityCorr)(),
+                (divU*alpha1 + vDotcAlphal-slipDensityCorr)(),
                 oneField(),
-                UniformField<scalar>(0.01)
+                UniformField<scalar>(0.0)
             );
 
             talphaPhi = talphaPhiCorr;
@@ -147,7 +123,7 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        alpha1 = (min(max(alpha1, scalar(0.001)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(0.0)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 
@@ -166,6 +142,5 @@
         << "  Max = " << max(vDotvmcAlphal).value() << nl
         << "vDotcAlphal     Min = " << min(vDotcAlphal).value()
         << "  Max = " << max(vDotcAlphal).value() << nl
-        << "blockFactor Min = " << min(blockFactor).value()
-        << "  Max = " << max(blockFactor).value() << endl;
+        << endl;
 }

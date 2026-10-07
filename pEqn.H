@@ -1,7 +1,7 @@
 {
     volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
     surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
-    volScalarField pslipdiv = fvc::div(pslipf);
+    pslipdiv = fvc::div(pslipf);
     Info<< "pslipdiv magnitude min: " 
     << min(pslipdiv).value() << " , max: "
     << max(pslipdiv).value() << nl << endl;
@@ -31,8 +31,8 @@
     constrainPressure(p_rgh, U, phiHbyA, rAUf);
 
     Pair<tmp<volScalarField>> vDotP = mixture->vDotP();
-    volScalarField vDotcP("vDotcP", vDotP[0]() * blockFactor);
-    volScalarField vDotvP("vDotvP", vDotP[1]() * blockFactor);
+    vDotcP = vDotP[0]();
+    vDotvP = vDotP[1]();
 
     while (pimple.correctNonOrthogonal())
     {
@@ -46,7 +46,7 @@
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)
           - (vDotvP - vDotcP)*(mixture->pSat() - rho*gh)
           + fvm::Sp(vDotvP - vDotcP, p_rgh)
-          + blockFactor*pslipdiv
+          + pslipdiv
         );
 
         p_rghEqn.setReference(pRefCell, pRefValue);

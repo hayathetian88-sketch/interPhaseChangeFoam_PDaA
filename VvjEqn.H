@@ -11,7 +11,7 @@ volScalarField limitedAlpha1
     mesh,
     dimensionedScalar("limitedAlpha1Value", dimless, 0.0)
 );
-limitedAlpha1 = min(max(alpha1, scalar(1e-4)), scalar(1));
+limitedAlpha1 = min(max(alpha1, scalar(1e-5)), scalar(1));
 
 tmp<volScalarField> tRb = mixture->rRb(limitedAlpha1);
 rRb = tRb();
