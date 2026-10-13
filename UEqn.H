@@ -1,7 +1,20 @@
-    limitedAlpha1 = min(max(alpha1, scalar(1e-3)), scalar(1));
-    taus = (((rho1 * rho2) / rho) * (scalar(1) - limitedAlpha1) * limitedAlpha1) * sqr(Vs);
-    surfaceSymmTensorField tausf = fvc::interpolate(taus);
-    volVectorField divTaus = fvc::surfaceIntegrate(mesh.Sf() & tausf);
+    limitedAlpha1 = min(max(alpha1, scalar(1e-6)), scalar(1));
+    surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
+    volScalarField cs
+    (
+        "cs",
+        ((rho1*rho2)/rho)*(scalar(1) - limitedAlpha1)*limitedAlpha1
+    );
+
+    // (B) V_j * div(c V): 面フラックスで発散を取る（divSchemes の指定が不要）
+    volScalarField divCVs("divCVs", fvc::div(fvc::interpolate(cs)*phiVs));
+
+    // (A) c * V_i dV_j/dx_i
+    volVectorField divTaus
+    (
+        "divTaus",
+        Vs*divCVs + cs*(Vs & fvc::grad(Vs))
+    );
 
     Info<< "taus magnitude min: " 
     << min(mag(taus)).value() << " , max: "

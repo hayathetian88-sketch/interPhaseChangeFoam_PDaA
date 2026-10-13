@@ -87,7 +87,7 @@
                   - vDotvmcAlphal*alpha10
                 )(),
                 oneField(),
-                zeroField()
+                UniformField<scalar>(1e-3)
             );
 
             if (aCorr == 0)
@@ -111,7 +111,7 @@
                 vDotvmcAlphal,
                 (divU*alpha1 + vDotcAlphal-slipDensityCorr)(),
                 oneField(),
-                UniformField<scalar>(0.0)
+                UniformField<scalar>(1e-3)
             );
 
             talphaPhi = talphaPhiCorr;
@@ -123,7 +123,7 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        alpha1 = (min(max(alpha1, scalar(0.0)), scalar(1)));
+        alpha1 = (min(max(alpha1, scalar(1e-3)), scalar(1)));
         alpha2 = 1.0 - alpha1;
     }
 

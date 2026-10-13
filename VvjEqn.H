@@ -32,7 +32,8 @@ Info<< "time_coeff magnitude min: "
     << min(time_coeff).value() << " , max: "
     << max(time_coeff).value() << nl << endl;
 Vt= -1*(16.0/3.0)*(1/(kd_dynamic*rho1*nu))*(1/(rRb*rRb))*gradp;
-dimensionedScalar maxVt("maxVt", dimVelocity, 1000.0);
+
+dimensionedScalar maxVt("maxVt", dimVelocity, 10.0);
 dimensionedScalar vSmall("vSmall", dimVelocity, VSMALL);
 
 Vt = Vt * min(maxVt / (mag(Vt) + vSmall), dimensionedScalar("one", dimless, 1.0));
@@ -55,6 +56,15 @@ fvVectorMatrix VsEqn
 
 VsEqn.relax();
 VsEqn.solve();
+
+// Vs の上限 [m/s]
+const dimensionedScalar VsMax("VsMax", dimVelocity, 1.0);
+
+// ハードキャップ（上限ちょうどで頭打ち）
+Vs *= min(VsMax/(mag(Vs)), dimensionedScalar("one", dimless, 1.0));
+Vs.correctBoundaryConditions();
+
+pcoeff = ((rho1 - rho2) / rho) * Vs;
 
 Info<< "Vs magnitude min: " 
     << min(mag(Vs)).value() << " , max: "
