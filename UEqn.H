@@ -1,5 +1,12 @@
     limitedAlpha1 = min(max(alpha1, scalar(1e-6)), scalar(1));
     surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
+    forAll(phiVs.boundaryField(), patchi)
+    {
+        if (!mesh.boundary()[patchi].coupled())
+        {
+            phiVs.boundaryFieldRef()[patchi] = 0.0;
+        }
+    }
     volScalarField cs
     (
         "cs",
@@ -10,11 +17,7 @@
     volScalarField divCVs("divCVs", fvc::div(fvc::interpolate(cs)*phiVs));
 
     // (A) c * V_i dV_j/dx_i
-    volVectorField divTaus
-    (
-        "divTaus",
-        Vs*divCVs + cs*(Vs & fvc::grad(Vs))
-    );
+    taus =  Vs*divCVs + cs*(Vs & fvc::grad(Vs));
 
     Info<< "taus magnitude min: " 
     << min(mag(taus)).value() << " , max: "
@@ -24,7 +27,7 @@
         fvm::ddt(rho, U)
       + fvm::div(rhoPhi, U)
       - fvm::Sp(fvc::ddt(rho) + fvc::div(rhoPhi), U)
-      + divTaus
+      + taus
       + turbulence->divDevRhoReff(rho, U)
     );
 

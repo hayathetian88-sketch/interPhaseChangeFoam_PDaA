@@ -220,7 +220,7 @@ volScalarField pslipdiv
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 
-volSymmTensorField taus
+volVectorField taus
 (
     IOobject
     (
@@ -231,7 +231,7 @@ volSymmTensorField taus
         IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedSymmTensor("taus", dimStress, symmTensor::zero)
+    dimensionedVector("taus", dimForce/dimVolume, vector::zero)
 );
 
 const dimensionSet revdimlength(dimless/dimLength);

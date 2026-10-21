@@ -6,9 +6,12 @@
     surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
     forAll(phiVs.boundaryField(), patchi)
     {
-        phiVs.boundaryFieldRef()[patchi] = 0.0;
+        if (!mesh.boundary()[patchi].coupled())
+        {
+            phiVs.boundaryFieldRef()[patchi] = 0.0;
+        }
     }
-    surfaceScalarField phiVsAlpha2("phiVsAlpha2", fvc::flux(phiVs, alpha2, alpharScheme));
+    surfaceScalarField phiVsAlpha2("phiVsAlpha2", phiVs*fvc::interpolate(alpha2));
 
     slipDensityCorr = alpha1*alpha2*((rho1-rho2)/rho)*(fvc::grad(alpha1) & Vs);
 
@@ -35,7 +38,7 @@
             (
                 mesh,
                 phiVsAlpha2,
-                upwind<scalar>(mesh, phiVsAlpha2)
+                linear<scalar>(mesh)
             ).fvmDiv(phiVsAlpha2, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
@@ -65,7 +68,7 @@
         (
             fvc::flux(phi, alpha1, alphaScheme)
           + fvc::flux(-fvc::flux(-phir, alpha2, alpharScheme), alpha1, alpharScheme)
-          - fvc::flux(fvc::flux(phiVs, alpha2, alpharScheme), alpha1, alpharScheme)
+          - phiVsAlpha2*fvc::interpolate(alpha1) 
         );
 
         if (MULESCorr)

@@ -3,7 +3,10 @@
     surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
     forAll(pslipf.boundaryField(), patchi)
     {
-        pslipf.boundaryFieldRef()[patchi] = 0.0;
+        if (!mesh.boundary()[patchi].coupled())
+        {
+            pslipf.boundaryFieldRef()[patchi] = 0.0;
+        }
     }
     pslipdiv = fvc::div(pslipf);
     Info<< "pslipdiv magnitude min: " 

@@ -31,9 +31,9 @@ time_coeff = (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
 Info<< "time_coeff magnitude min: " 
     << min(time_coeff).value() << " , max: "
     << max(time_coeff).value() << nl << endl;
-Vt= -1*(16.0/3.0)*(1/(kd_dynamic*rho1*nu))*(1/(rRb*rRb))*gradp;
+Vt= -1*kd.value()*(16.0/3.0)*(1/(kd_dynamic*rho1*nu))*(1/(rRb*rRb))*gradp;
 
-dimensionedScalar maxVt("maxVt", dimVelocity, 10.0);
+dimensionedScalar maxVt("maxVt", dimVelocity, 100);
 dimensionedScalar vSmall("vSmall", dimVelocity, VSMALL);
 
 Vt = Vt * min(maxVt / (mag(Vt) + vSmall), dimensionedScalar("one", dimless, 1.0));
@@ -42,6 +42,13 @@ Info<< "Vt magnitude min: "
     << max(mag(Vt)).value() << nl << endl;
 
 surfaceScalarField phiv = phi + fvc::flux((rho1/rho)*limitedAlpha1*Vs);
+forAll(phiv.boundaryField(), patchi)
+{
+    if (isA<wallFvPatch>(mesh.boundary()[patchi]))
+    {
+        phiv.boundaryFieldRef()[patchi] = 0.0;
+    }
+}
 volTensorField gradVl = fvc::grad(U - (rho2 / rho) * (scalar(1.0) - limitedAlpha1) * Vs);
 
 fvVectorMatrix VsEqn
@@ -58,7 +65,7 @@ VsEqn.relax();
 VsEqn.solve();
 
 // Vs の上限 [m/s]
-const dimensionedScalar VsMax("VsMax", dimVelocity, 1.0);
+const dimensionedScalar VsMax("VsMax", dimVelocity, kw.value());
 
 // ハードキャップ（上限ちょうどで頭打ち）
 Vs *= min(VsMax/(mag(Vs)), dimensionedScalar("one", dimless, 1.0));
@@ -69,9 +76,5 @@ pcoeff = ((rho1 - rho2) / rho) * Vs;
 Info<< "Vs magnitude min: " 
     << min(mag(Vs)).value() << " , max: "
     << max(mag(Vs)).value() << nl << endl;
-
-// Vgj = (1 - limitedAlpha1) * Vs ;
-
-pcoeff = ((rho1 - rho2) / rho) * Vs;
 
 Info<< "VvjEqn end" << endl;
