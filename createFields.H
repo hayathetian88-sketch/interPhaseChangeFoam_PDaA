@@ -28,7 +28,6 @@ volVectorField U
 
 #include "createPhi.H"
 
-
 Info<< "Creating phaseChangeTwoPhaseMixture\n" << endl;
 autoPtr<phaseChangeTwoPhaseMixture> mixture =
     phaseChangeTwoPhaseMixture::New(U, phi);
@@ -38,7 +37,6 @@ volScalarField& alpha2(mixture->alpha2());
 
 const dimensionedScalar& rho1 = mixture->rho1();
 const dimensionedScalar& rho2 = mixture->rho2();
-
 
 // Need to store rho for ddt(rho, U)
 volScalarField rho
@@ -54,7 +52,6 @@ volScalarField rho
 );
 rho.oldTime();
 
-
 // Construct interface from alpha1 distribution
 interfaceProperties interface(alpha1, U, mixture());
 
@@ -64,11 +61,9 @@ autoPtr<incompressible::turbulenceModel> turbulence
     incompressible::turbulenceModel::New(U, phi, mixture())
 );
 
-
 #include "readGravitationalAcceleration.H"
 #include "readhRef.H"
 #include "gh.H"
-
 
 volScalarField p
 (
@@ -117,7 +112,6 @@ if (yn.headerOk())
 else
 {
     Info<< "Calculating wall distance field yn\n" << endl;
-    
     wallDist y(mesh);
     yn = y.y();
 }
@@ -137,7 +131,6 @@ volScalarField slipDensityCorr
     dimensionedScalar("slipDensityCorr", dimless/dimTime, 0.0) // 次元は [1/s]
 );
 
-
 volScalarField vDotvmcAlphal
 (
     IOobject
@@ -151,6 +144,7 @@ volScalarField vDotvmcAlphal
     mesh,
     dimensionedScalar("vDotvmcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
 );
+
 volScalarField vDotvAlphal
 (
     IOobject
@@ -164,6 +158,7 @@ volScalarField vDotvAlphal
     mesh,
     dimensionedScalar("vDotvAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
 );
+
 volScalarField vDotcAlphal
 (
     IOobject
@@ -177,6 +172,7 @@ volScalarField vDotcAlphal
     mesh,
     dimensionedScalar("vDotcAlphal", dimless/dimTime, 0.0) // 次元は [1/s]
 );
+
 volScalarField vDotcP
 (
     IOobject
@@ -185,11 +181,12 @@ volScalarField vDotcP
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+        IOobject::AUTO_WRITE
     ),
     mesh,
     dimensionedScalar("vDotcP", dimless/dimTime/dimPressure, 0.0) // 次元は [1/(Pa・s)]
 );
+
 volScalarField vDotvP
 (
     IOobject
@@ -198,11 +195,12 @@ volScalarField vDotvP
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+        IOobject::AUTO_WRITE
     ),
     mesh,
     dimensionedScalar("vDotvP", dimless/dimTime/dimPressure, 0.0) // 次元は [1/(Pa・s)]
 );
+
 volScalarField pslipdiv
 (
     IOobject
@@ -211,12 +209,11 @@ volScalarField pslipdiv
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
-        IOobject::AUTO_WRITE // 時間ディレクトリに出力
+        IOobject::AUTO_WRITE
     ),
     mesh,
-    dimensionedScalar("pslipdiv", dimless/dimTime, 0.0) // 次元は [1/(Pa・s)]
+    dimensionedScalar("pslipdiv", dimless/dimTime, 0.0) // 次元は [1/s]
 );
-//
 
 const dimensionSet dimStress(dimMass/dimLength/sqr(dimTime));
 
@@ -250,7 +247,6 @@ volScalarField rRb
     dimensionedScalar("zero", revdimlength, 0.0)
 );
 
-
 volVectorField Vs
 (
     IOobject
@@ -263,6 +259,7 @@ volVectorField Vs
     ),
     mesh
 );
+Vs.oldTime(); // fvm::ddt(Vs) のために旧時刻データを確保
 
 volVectorField Vv
 (
@@ -308,19 +305,19 @@ volVectorField Vt
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-// volScalarField slipdot
-// (
-//     IOobject
-//     (
-//         "slipdot",
-//         runTime.timeName(),
-//         mesh,
-//         IOobject::NO_READ,
-//         IOobject::NO_WRITE
-//     ),
-//     mesh,
-//     dimensionedScalar("zero", revdimtime, 0.0)
-// );
+// ファイル間で共有する limitedAlpha1, pcoeff, phiVs, pslipf の宣言と初期化
+volScalarField limitedAlpha1
+(
+    IOobject
+    (
+        "limitedAlpha1",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    min(max(alpha1, scalar(1e-5)), scalar(1))
+);
 
 volVectorField pcoeff
 (
@@ -332,10 +329,50 @@ volVectorField pcoeff
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    mesh,
-    dimensionedVector("zero", dimVelocity, vector::zero)
+    ((rho1 - rho2)/rho)*Vs
 );
 
+surfaceScalarField phiVs
+(
+    IOobject
+    (
+        "phiVs",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    fvc::flux(Vs)
+);
+
+forAll(phiVs.boundaryField(), patchi)
+{
+    if (!mesh.boundary()[patchi].coupled())
+    {
+        phiVs.boundaryFieldRef()[patchi] = 0.0;
+    }
+}
+
+surfaceScalarField pslipf
+(
+    IOobject
+    (
+        "pslipf",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    fvc::flux(pcoeff * limitedAlpha1 * (1.0 - limitedAlpha1))
+);
+
+forAll(pslipf.boundaryField(), patchi)
+{
+    if (!mesh.boundary()[patchi].coupled())
+    {
+        pslipf.boundaryFieldRef()[patchi] = 0.0;
+    }
+}
 
 if (p_rgh.needReference())
 {

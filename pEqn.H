@@ -1,6 +1,6 @@
 {
-    volVectorField pslipcoeff = pcoeff * limitedAlpha1 * (1 - limitedAlpha1);
-    surfaceScalarField pslipf("pslipf",fvc::flux(pslipcoeff));
+    volVectorField pslipcoeff("pslipcoeff", pcoeff * limitedAlpha1 * (1.0 - limitedAlpha1));
+    pslipf = fvc::flux(pslipcoeff);
     forAll(pslipf.boundaryField(), patchi)
     {
         if (!mesh.boundary()[patchi].coupled())
@@ -8,10 +8,11 @@
             pslipf.boundaryFieldRef()[patchi] = 0.0;
         }
     }
+
     pslipdiv = fvc::div(pslipf);
     Info<< "pslipdiv magnitude min: " 
-    << min(pslipdiv).value() << " , max: "
-    << max(pslipdiv).value() << nl << endl;
+        << min(pslipdiv).value() << " , max: "
+        << max(pslipdiv).value() << nl << endl;
     
     volScalarField rAU("rAU", 1.0/UEqn.A());
     surfaceScalarField rAUf("rAUf", fvc::interpolate(rAU));
@@ -46,8 +47,9 @@
         volScalarField phaseChangeCoeff("phaseChangeCoeff", vDotvP - vDotcP);
         volScalarField phaseChangeSource("phaseChangeSource", phaseChangeCoeff * p_rgh);
         Info<< "PhaseChange Source (Coeff * p_rgh) min: " 
-        << min(phaseChangeSource).value() << " , max: " 
-        << max(phaseChangeSource).value() << nl << endl;
+            << min(phaseChangeSource).value() << " , max: " 
+            << max(phaseChangeSource).value() << nl << endl;
+
         fvScalarMatrix p_rghEqn
         (
             fvc::div(phiHbyA) - fvm::laplacian(rAUf, p_rgh)

@@ -9,16 +9,6 @@
         phic += (interface.cAlpha()*icAlpha)*fvc::interpolate(mag(U));
     }
 
-    // surfaceScalarField phis(fvc::flux(Vgj));
-
-    volScalarField divU
-    (
-        mesh.moving()
-      ? fvc::div(phi + mesh.phi())
-      : fvc::div(phi)
-    );
-    
-
     if (nAlphaSubCycles > 1)
     {
         dimensionedScalar totalDeltaT = runTime.deltaT();
@@ -50,5 +40,6 @@
     {
         #include "alphaEqn.H"
     }
+
     rho == alpha1*rho1 + alpha2*rho2;
 }

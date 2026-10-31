@@ -6,43 +6,6 @@
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
     Copyright (C) 2011-2017 OpenFOAM Foundation
--------------------------------------------------------------------------------
-License
-    This file is part of OpenFOAM.
-
-    OpenFOAM is free software: you can redistribute it and/or modify it
-    under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-    for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
-
-Application
-    interPhaseChangeFoam
-
-Group
-    grpMultiphaseSolvers
-
-Description
-    Solver for two incompressible, isothermal immiscible fluids with
-    phase-change (e.g. cavitation).
-    Uses VOF (volume of fluid) phase-fraction based interface capturing.
-
-    The momentum and other fluid properties are of the "mixture" and a
-    single momentum equation is solved.
-
-    The set of phase-change models provided are designed to simulate cavitation
-    but other mechanisms of phase-change are supported within this solver
-    framework.
-
-    Turbulence modelling is generic, i.e. laminar, RAS or LES may be selected.
-
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
@@ -79,7 +42,6 @@ int main(int argc, char *argv[])
     #include "CourantNo.H"
     #include "setInitialDeltaT.H"
     #include "UniformField.H"
-    
 
     turbulence->validate();
 
@@ -102,8 +64,6 @@ int main(int argc, char *argv[])
         {
             #include "alphaControls.H"
 
-            #include "VvjEqn.H"
-
             surfaceScalarField rhoPhi
             (
                 IOobject
@@ -118,10 +78,12 @@ int main(int argc, char *argv[])
 
             mixture->correct();
 
+            // 前ステップの pEqn で発散の整合が取れた (phi, pslipf, phiVs) で alpha1 を移流
             #include "alphaEqnSubCycle.H"
             interface.correct();
 
-            //#include "VvjEqn.H"
+            // 更新された alpha1 を用いてスリップ速度輸送方程式 (VvjEqn) を解き、Vs と phiVs を更新
+            #include "VsEqn.H"
 
             #include "UEqn.H"
 
@@ -146,6 +108,5 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
 
 // ************************************************************************* //

@@ -1,13 +1,4 @@
-    limitedAlpha1 = min(max(alpha1, scalar(1e-6)), scalar(1));
-    surfaceScalarField phiVs("phiVs", fvc::flux(Vs));
-    forAll(phiVs.boundaryField(), patchi)
-    {
-        if (!mesh.boundary()[patchi].coupled())
-        {
-            phiVs.boundaryFieldRef()[patchi] = 0.0;
-        }
-    }
-    volScalarField cs
+volScalarField cs
     (
         "cs",
         ((rho1*rho2)/rho)*(scalar(1) - limitedAlpha1)*limitedAlpha1
@@ -17,11 +8,12 @@
     volScalarField divCVs("divCVs", fvc::div(fvc::interpolate(cs)*phiVs));
 
     // (A) c * V_i dV_j/dx_i
-    taus =  Vs*divCVs + cs*(Vs & fvc::grad(Vs));
+    taus = Vs*divCVs + cs*(Vs & fvc::grad(Vs));
 
     Info<< "taus magnitude min: " 
-    << min(mag(taus)).value() << " , max: "
-    << max(mag(taus)).value() << nl << endl;
+        << min(mag(taus)).value() << " , max: "
+        << max(mag(taus)).value() << nl << endl;
+
     fvVectorMatrix UEqn
     (
         fvm::ddt(rho, U)
@@ -49,3 +41,4 @@
             )
         );
     }
+    
