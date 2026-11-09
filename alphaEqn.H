@@ -1,11 +1,16 @@
 {
+    Info<< "Before alphaEqn: max|Vs| = "
+        << gMax(mag(Vs.primitiveField())) << endl;
+
+    Info<< "Before alphaEqn: max|phiVs| = "
+        << gMax(mag(phiVs.primitiveField())) << endl;
+
     word alphaScheme("div(phi,alpha)");
     word alpharScheme("div(phirb,alpha)");
 
     surfaceScalarField phir("phir", phic*interface.nHatf());
 
-    // 体積平均速度 j のフラックス。
-    // pslipf と phiVs は前ステップで整合が取れたものをそのまま使う。
+    // 体積平均速度 j のフラックス（div(phij) = 相変化膨張率 D を満たす）
     surfaceScalarField phij("phij", phi + pslipf);
     volScalarField divUj
     (
@@ -15,10 +20,19 @@
       : fvc::div(phij)
     );
 
-    surfaceScalarField phiVsAlpha2("phiVsAlpha2", phiVs*fvc::interpolate(alpha2));
+    // 【修正1】alpha2 の補間も中央差分ではなく、スリップの向きに沿った有界スキーム(alpharScheme)で評価する
+    // alpha1 のスリップ流束は -alpha1 * alpha2 * phiVs なので、phir と全く同じ構造を持つ
+    surfaceScalarField phiVsAlpha2
+    (
+        "phiVsAlpha2",
+        fvc::flux(phiVs, alpha2, alpharScheme)
+    );
 
     // alpha1 をスリップで運ぶ実効フラックス（液相は j に対して -alpha2*Vs で動く）
     surfaceScalarField phiSlipAdv("phiSlipAdv", -phiVsAlpha2);
+
+    // 【修正2】alpha1 を運ぶ全移流フラックス phiAlphaTotal = phij + phiSlipAdv
+    surfaceScalarField phiAlphaTotal("phiAlphaTotal", phij + phiSlipAdv);
 
     Pair<tmp<volScalarField>> vDotAlphal = mixture->vDotAlphal();
     vDotcAlphal = vDotAlphal[0]();
@@ -34,15 +48,19 @@
         Info<< "Co(phi) = " << co(phi)
             << "  Co(phij) = " << co(phij)
             << "  Co(slip) = " << co(phiVsAlpha2)
-            << "  max|Vs| = " << gMax(mag(Vs.primitiveField()))
             << "  max|divUj| = " << gMax(mag(divUj.primitiveField())) << endl;
     }
+    Info<< "max|alpha2| = " << max(alpha2).value() << endl;
+    Info<< "max|phiVsAlpha2| = " << gMax(mag(phiVsAlpha2.primitiveField())) << endl;
+    Info<< "max|Vs| = " << gMax(mag(Vs.primitiveField())) << endl;
 
     tmp<surfaceScalarField> talphaPhi;
 
     if (MULESCorr)
     {
-        // 予測子: 対流・スリップとも upwind（有界な予測解を作る）
+        // 【修正3】予測子ではスリップ項の非物理的な発散 div(phiSlipAdv) による吸い出しを防ぐため、
+        // 予測段階は体積保存が保証されている phij のみで有界な予測解を作り、
+        // スリップ流束は直後の MULES::correct で有界性リミッタ付きで組み込む（標準の phir と同じ扱い）
         fvScalarMatrix alpha1Eqn
         (
             fv::EulerDdtScheme<scalar>(mesh).fvmDdt(alpha1)
@@ -53,12 +71,6 @@
                 upwind<scalar>(mesh, phij)
             ).fvmDiv(phij, alpha1)
           - fvm::Sp(divUj, alpha1)
-          + fv::gaussConvectionScheme<scalar>
-            (
-                mesh,
-                phiSlipAdv,
-                upwind<scalar>(mesh, phiSlipAdv)
-            ).fvmDiv(phiSlipAdv, alpha1)
          ==
             fvm::Sp(vDotvmcAlphal, alpha1)
           + vDotcAlphal
@@ -79,12 +91,13 @@
 
     for (int aCorr=0; aCorr<nAlphaCorr; aCorr++)
     {
-        // 高次流束: j による対流 + 圧縮 - スリップ
+        // 【修正4】高次流束: スリップ項も中央差分 interpolate(alpha1) ではなく、
+        // fvc::flux(phiSlipAdv, alpha1, alpharScheme) で有界補間する
         tmp<surfaceScalarField> talphaPhiCorr
         (
             fvc::flux(phij, alpha1, alphaScheme)
           + fvc::flux(-fvc::flux(-phir, alpha2, alpharScheme), alpha1, alpharScheme)
-          - phiVsAlpha2*fvc::interpolate(alpha1)
+          + fvc::flux(phiSlipAdv, alpha1, alpharScheme)
         );
 
         if (MULESCorr)
@@ -121,6 +134,7 @@
         }
         else
         {
+            // 【修正5】explicitSolve 時は MULES が talphaPhiCorr 全体をリミットしてくれる
             MULES::explicitSolve
             (
                 geometricOneField(),
@@ -142,7 +156,6 @@
             << "  Max(" << alpha1.name() << ") = " << max(alpha1).value()
             << endl;
 
-        // クリップ前後の総量（[0, 1] の範囲外のみクリップ）
         const scalar a1Pre = fvc::domainIntegrate(alpha1).value();
 
         alpha1 = min(max(alpha1, scalar(0)), scalar(1));
