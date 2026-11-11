@@ -30,16 +30,7 @@
     );
 
     // 2. 緩和時間逆数 time_coeff [1/s]
-    //    反復ごとのフリップフロップ（ミルフィーユ振動）を防ぐため前回値と 0.5 ずつブレンド
-    volScalarField time_coeff_new("time_coeff_new", (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb));
-    if ( mag(max(time_coeff)).value() > SMALL )
-    {
-        time_coeff = 0.5*time_coeff + 0.5*time_coeff_new;
-    }
-    else
-    {
-        time_coeff = time_coeff_new;
-    }
+    time_coeff = (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
 
     Info<< "time_coeff magnitude min: " 
         << min(time_coeff).value() << " , max: "
