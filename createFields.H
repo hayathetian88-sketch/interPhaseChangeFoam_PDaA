@@ -363,7 +363,7 @@ surfaceScalarField pslipf
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    fvc::flux(pcoeff * limitedAlpha1 * (1.0 - limitedAlpha1))
+    fvc::interpolate((rho1 - rho2)/rho*limitedAlpha1*(1.0 - limitedAlpha1))*phiVs
 );
 
 forAll(pslipf.boundaryField(), patchi)

@@ -1,6 +1,5 @@
 {
-    volVectorField pslipcoeff("pslipcoeff", pcoeff * limitedAlpha1 * (1.0 - limitedAlpha1));
-    pslipf = fvc::flux(pslipcoeff);
+    pslipf = fvc::interpolate((rho1 - rho2)/rho * limitedAlpha1*(1 - limitedAlpha1)) * phiVs;
     forAll(pslipf.boundaryField(), patchi)
     {
         if (!mesh.boundary()[patchi].coupled())
