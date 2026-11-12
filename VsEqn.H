@@ -64,7 +64,9 @@
     );
 
     // 5. スリップ速度輸送方程式
-    //    fvc::reconstruct による高周波縞模様を防ぐため、右辺には素直に -cGradp * gradp を入れる
+    //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
+    //    圧力駆動分は pEqn でラプラシアンとして陰的に解く（陽的に入れると kd が大きいとき
+    //    p <-> Vs の反復が発散するため）
     fvVectorMatrix VsEqn
     (
         fvm::ddt(Vs)
@@ -73,23 +75,22 @@
       + fvm::Sp(time_coeff, Vs)
      ==
       - (Vs & gradVl)
-      - cGradp * gradp
     );
 
     VsEqn.relax();
-    VsEqn.solve();
+    solve(VsEqn == -cGradp*gradp);
 
-    // 6. 上限キャップの適用（事後 reconstruct で Vs を上書きしない！）
-    const dimensionedScalar VsMax("VsMax", dimVelocity, kw.value());
-    Vs *= min(VsMax / (mag(Vs) + vSmall), dimensionedScalar("one", dimless, 1.0));
-    Vs.correctBoundaryConditions();
+    // 6. 圧力分解用の係数（キャップ前の Vs で H を評価して分解を厳密に保つ）
+    {
+        volScalarField rAVs("rAVs", 1.0/VsEqn.A());
+        HbyVs = rAVs*VsEqn.H();
+        HbyVs.correctBoundaryConditions();
+        DVs = cGradp*rAVs;
+        DVsf = fvc::interpolate(DVs);
+    }
 
-    // 7. 面フラックス phiVs の構築（標準的な Rhie-Chow 補正のみを加える）
-    //    fvc::flux(Vs) に含まれる「セル中心 gradp の補間成分」を引き、
-    //    「面直交勾配 snGrad(p_rgh) の直接成分」に差し替えることでチェッカーボードのみを消す
-    surfaceScalarField rAVsf("rAVsf", fvc::interpolate(1.0/VsEqn.A()));
-    phiVs = fvc::flux(Vs)
-          + rAVsf * cGradp * (fvc::flux(gradp) - fvc::snGrad(p_rgh) * mesh.magSf());
+    // 7. 面フラックス phiVs（Rhie-Chow 形式。pEqn 後に新しい p_rgh で更新し直される）
+    phiVs = fvc::flux(HbyVs) - DVsf*fvc::snGrad(p_rgh)*mesh.magSf();
 
     forAll(phiVs.boundaryField(), patchi)
     {
@@ -98,6 +99,11 @@
             phiVs.boundaryFieldRef()[patchi] = 0.0;
         }
     }
+
+    // 8. セル中心 Vs の上限キャップ（phiVs には適用しない）
+    const dimensionedScalar VsMax("VsMax", dimVelocity, kw.value());
+    Vs *= min(VsMax/(mag(Vs) + vSmall), dimensionedScalar("one", dimless, 1.0));
+    Vs.correctBoundaryConditions();
 
     Info<< "Vs magnitude min: " 
         << min(mag(Vs)).value() << " , max: "
