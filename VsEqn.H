@@ -71,6 +71,11 @@
     // 液相速度 ~ 混合速度 (u_l = U - Y2*Vs で Y2 << 1 の分散気泡近似と整合)
     volTensorField gradVl("gradVl", fvc::grad(U));
 
+    // 壁減衰: 気泡は自身の半径より細かい速度勾配を感じない（中心は壁から R 以内に入れない）
+    //   fWall = min(yn/R, 1) = min(yn*rRb, 1) を伸びの項 -(Vs.gradVl) に掛ける
+    //   壁から R 以上離れたセルでは fWall = 1 で元のモデルと同一
+    volScalarField fWall("fWall", min(yn*rRb, scalar(1)));
+
     // 5. スリップ速度輸送方程式
     //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
     //    圧力駆動分は pEqn でラプラシアンとして陰的に解く（陽的に入れると kd が大きいとき
@@ -82,7 +87,7 @@
       + fvm::SuSp(-fvc::div(phiv), Vs)
       + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
      ==
-      - (Vs & gradVl)
+      - fWall*(Vs & gradVl)
       + nDrag*time_coeff*Vs
     );
 
@@ -102,9 +107,9 @@
     {
         volScalarField fP("fP_gradp", cGradp*mag(gradp));
         volScalarField fD("fD_drag", time_coeff*mag(Vs));
-        volScalarField fS("fS_strain", mag(Vs & gradVl));
+        volScalarField fS("fS_strain", fWall*mag(Vs & gradVl));
         volScalarField fC("fC_divphiv", max(fvc::div(phiv), dimensionedScalar(dimless/dimTime, Zero))*mag(Vs));
-        volScalarField strainRatio("strainRatio", mag(gradVl)/time_coeff);
+        volScalarField strainRatio("strainRatio", fWall*mag(gradVl)/time_coeff);
 
         const scalarField magVs(mag(Vs.primitiveField()));
         const scalar maxVs = gMax(magVs);
@@ -122,6 +127,8 @@
                     << " | gradp=" << fP[celli]
                     << " drag=" << fD[celli]
                     << " strain=" << fS[celli]
+                    << " yn=" << yn[celli]
+                    << " fWall=" << fWall[celli]
                     << " divphiv=" << fC[celli]
                     << " strainRatio=" << strainRatio[celli]
                     << endl;
@@ -137,6 +144,7 @@
             fC.write();
             strainRatio.write();
             nDrag.write();
+            fWall.write();
         }
     }
 
