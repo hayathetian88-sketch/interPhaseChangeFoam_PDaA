@@ -32,6 +32,17 @@
     // 2. 緩和時間逆数 time_coeff [1/s]
     time_coeff =(3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
 
+    //    抗力 f = time_coeff(|Vs|)*Vs の Newton 線形化用の指数 nDrag = dln(Cd Re)/dln Re
+    //    （Schiller-Naumann 側: 0.15*0.687*Re^0.687/(1+0.15 Re^0.687)、Newton 側(0.44Re): 1）
+    //    f ~ (1+nDrag)*time_coeff*Vs - nDrag*time_coeff*Vs*  （Vs* は前反復値。収束すれば元の抗力と一致）
+    volScalarField nDrag
+    (
+        "nDrag",
+        pos0(kd_high - kd_SN)
+      + neg(kd_high - kd_SN)
+       *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687))
+    );
+
     Info<< "time_coeff magnitude min: " 
         << min(time_coeff).value() << " , max: "
         << max(time_coeff).value() << nl << endl;
@@ -57,11 +68,8 @@
         }
     }
 
-    volTensorField gradVl
-    (
-        "gradVl",
-        fvc::grad(U - (rho2 / rho) * (scalar(1.0) - limitedAlpha1) * Vs)
-    );
+    // 液相速度 ~ 混合速度 (u_l = U - Y2*Vs で Y2 << 1 の分散気泡近似と整合)
+    volTensorField gradVl("gradVl", fvc::grad(U));
 
     // 5. スリップ速度輸送方程式
     //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
@@ -72,9 +80,10 @@
         fvm::ddt(Vs)
       + fvm::div(phiv, Vs)
       + fvm::SuSp(-fvc::div(phiv), Vs)
-      + fvm::Sp(time_coeff, Vs)
+      + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
      ==
       - (Vs & gradVl)
+      + nDrag*time_coeff*Vs
     );
 
     VsEqn.relax();
@@ -87,6 +96,48 @@
         HbyVs.correctBoundaryConditions();
         DVs = cGradp*rAVs;
         DVsf = fvc::interpolate(DVs);
+    }
+
+    // --- 診断: Vs を駆動・抑制している各項の大きさ [m/s2] ---
+    {
+        volScalarField fP("fP_gradp", cGradp*mag(gradp));
+        volScalarField fD("fD_drag", time_coeff*mag(Vs));
+        volScalarField fS("fS_strain", mag(Vs & gradVl));
+        volScalarField fC("fC_divphiv", max(fvc::div(phiv), dimensionedScalar(dimless/dimTime, Zero))*mag(Vs));
+        volScalarField strainRatio("strainRatio", mag(gradVl)/time_coeff);
+
+        const scalarField magVs(mag(Vs.primitiveField()));
+        const scalar maxVs = gMax(magVs);
+        forAll(magVs, celli)
+        {
+            if (magVs[celli] >= maxVs)
+            {
+                Pout<< "maxVs cell " << celli << " at " << mesh.C()[celli]
+                    << " |Vs|=" << magVs[celli]
+                    << " alpha1=" << alpha1[celli]
+                    << " Rb=" << 1.0/rRb[celli]
+                    << " Re=" << Re_b[celli]
+                    << " time_coeff=" << time_coeff[celli]
+                    << " nDrag=" << nDrag[celli]
+                    << " | gradp=" << fP[celli]
+                    << " drag=" << fD[celli]
+                    << " strain=" << fS[celli]
+                    << " divphiv=" << fC[celli]
+                    << " strainRatio=" << strainRatio[celli]
+                    << endl;
+                break;
+            }
+        }
+
+        if (runTime.writeTime() && pimple.finalIter())
+        {
+            fP.write();
+            fD.write();
+            fS.write();
+            fC.write();
+            strainRatio.write();
+            nDrag.write();
+        }
     }
 
     // 7. 面フラックス phiVs（Rhie-Chow 形式。pEqn 後に新しい p_rgh で更新し直される）

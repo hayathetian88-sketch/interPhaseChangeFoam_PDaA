@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     #include "createFields.H"
     #include "createTimeControls.H"
     #include "CourantNo.H"
+    #include "slipCourantNo.H"
     #include "setInitialDeltaT.H"
     #include "UniformField.H"
 
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
     {
         #include "readTimeControls.H"
         #include "CourantNo.H"
+        #include "slipCourantNo.H"
         #include "setDeltaT.H"
 
         ++runTime;
