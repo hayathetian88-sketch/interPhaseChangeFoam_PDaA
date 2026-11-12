@@ -305,7 +305,7 @@ volVectorField Vt
     dimensionedVector("zero", dimVelocity, vector::zero)
 );
 
-// ファイル間で共有する limitedAlpha1, pcoeff, phiVs, pslipf の宣言と初期化
+// ファイル間で共有する limitedAlpha1, HbyVs, DVs, phiVs, pslipf の宣言と初期化
 volScalarField limitedAlpha1
 (
     IOobject
@@ -319,17 +319,47 @@ volScalarField limitedAlpha1
     min(max(alpha1, scalar(1e-5)), scalar(1))
 );
 
-volVectorField pcoeff
+// Vs = HbyVs - DVs*grad(p_rgh) と分解したときの圧力以外の部分 HbyVs と、
+// 圧力勾配係数 DVs = cGradp/A(VsEqn) [m3 s/kg]（pEqn でスリップ流束を陰的に扱うため）
+volVectorField HbyVs
 (
     IOobject
     (
-        "pcoeff",
+        "HbyVs",
         runTime.timeName(),
         mesh,
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    ((rho1 - rho2)/rho)*Vs
+    Vs
+);
+
+volScalarField DVs
+(
+    IOobject
+    (
+        "DVs",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("DVs", dimTime/dimDensity, Zero)
+);
+
+surfaceScalarField DVsf
+(
+    IOobject
+    (
+        "DVsf",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::NO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("DVsf", dimTime/dimDensity, Zero)
 );
 
 surfaceScalarField phiVs
@@ -363,7 +393,7 @@ surfaceScalarField pslipf
         IOobject::NO_READ,
         IOobject::NO_WRITE
     ),
-    fvc::flux(pcoeff * limitedAlpha1 * (1.0 - limitedAlpha1))
+    fvc::interpolate((rho1 - rho2)/rho*limitedAlpha1*(1.0 - limitedAlpha1))*phiVs
 );
 
 forAll(pslipf.boundaryField(), patchi)
