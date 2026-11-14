@@ -8,5 +8,9 @@
 
     Info<< "Slip Courant Number max: " << slipCoNum << endl;
 
-    CoNum = max(CoNum, slipCoNum);
+    // fvSolution の PIMPLE 辞書で ON/OFF（既定 ON）
+    if (pimple.dict().getOrDefault<bool>("slipCourant", true))
+    {
+        CoNum = max(CoNum, slipCoNum);
+    }
 }

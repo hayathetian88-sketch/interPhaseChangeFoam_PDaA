@@ -43,6 +43,12 @@
        *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687))
     );
 
+    // fvSolution の PIMPLE 辞書で ON/OFF（既定 OFF）
+    if (!pimple.dict().getOrDefault<bool>("dragNewton", false))
+    {
+        nDrag *= 0.0;
+    }
+
     Info<< "time_coeff magnitude min: " 
         << min(time_coeff).value() << " , max: "
         << max(time_coeff).value() << nl << endl;
@@ -80,6 +86,12 @@
        /(mag(gradVl) + dimensionedScalar(dimless/dimTime, SMALL)),
         scalar(1)
     );
+
+    // fvSolution の PIMPLE 辞書で ON/OFF（既定 ON）
+    if (!pimple.dict().getOrDefault<bool>("finiteBubbleSize", true))
+    {
+        fSize = dimensionedScalar(dimless, 1.0);
+    }
 
     // 5. スリップ速度輸送方程式
     //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
