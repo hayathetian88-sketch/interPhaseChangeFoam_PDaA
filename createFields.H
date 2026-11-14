@@ -247,6 +247,22 @@ volScalarField rRb
     dimensionedScalar("zero", revdimlength, 0.0)
 );
 
+// 有限気泡径による速度勾配の制限係数 fSize = min(|U|/(2R) / |grad U|, 1)
+// （気泡は自身の直径より細かい速度勾配を感じない）
+volScalarField fSize
+(
+    IOobject
+    (
+        "fSize",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ,
+        IOobject::AUTO_WRITE
+    ),
+    mesh,
+    dimensionedScalar("one", dimless, 1.0)
+);
+
 volVectorField Vs
 (
     IOobject
