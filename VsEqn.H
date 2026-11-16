@@ -48,7 +48,7 @@
         << max(time_coeff).value() << nl << endl;
 
     // 3. 圧力駆動力の係数 cGradp = 2 * kd / rho1
-    const dimensionedScalar cGradp("cGradp", kd.value() * 2.0 / rho1);
+    const dimensionedScalar cGradp("cGradp", 0.5 * 2.0 / rho1);
 
     // セル中心の圧力勾配（ガウス積分）
     volVectorField gradp("gradp", fvc::grad(p_rgh));
