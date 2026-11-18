@@ -42,9 +42,6 @@
     //   VsCorrTol : 収束判定  max|Vs - Vs_prev| / max|Vs| < VsCorrTol で打ち切り（既定 0 = 毎回 nVsCorr 回）
     const label nVsCorr = pimple.dict().getOrDefault<label>("nVsCorr", 1);
     const scalar VsCorrTol = pimple.dict().getOrDefault<scalar>("VsCorrTol", 0.0);
-    const bool dragNewton = pimple.dict().getOrDefault<bool>("dragNewton", false);
-    //   VsDdt     : VsEqn に非定常項 fvm::ddt(Vs) を含めるか（既定 false）
-    const bool VsDdt = pimple.dict().getOrDefault<bool>("VsDdt", false);
 
     // 内側反復で更新する量（陽に Vs を含むもの）
     volScalarField Re_b("Re_b", (2.0/rRb)*mag(Vs)/nu);
@@ -80,14 +77,12 @@
         // 2. 緩和時間逆数 time_coeff [1/s]
         time_coeff = (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
 
-        //    抗力の Newton 線形化用の指数 nDrag = dln(Cd Re)/dln Re（dragNewton 時のみ）
-        if (dragNewton)
-        {
-            nDrag =
-                pos0(kd_high - kd_SN)
-              + neg(kd_high - kd_SN)
-               *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687));
-        }
+        //    抗力の Newton 線形化用の指数 nDrag = dln(Cd Re)/dln Re
+        //    （Schiller-Naumann 側: 0.15*0.687*Re^0.687/(1+0.15 Re^0.687)、Newton 側(0.44Re): 1）
+        nDrag =
+            pos0(kd_high - kd_SN)
+          + neg(kd_high - kd_SN)
+           *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687));
 
         // 4. 気相速度フラックス phiv（最新の phiVs で評価）
         phiv = phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs;
@@ -102,8 +97,7 @@
         // 5. スリップ速度輸送方程式
         //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
         //    圧力駆動分は pEqn でラプラシアンとして陰的に解く
-        //    VsDdt false（既定）: 非定常項なし（準定常）。内側反復が擬似時間反復として働く
-        //    VsDdt true         : fvm::ddt(Vs) を加える（時間遅れを含む PDA）
+        //    非定常項なし（準定常）。内側反復が擬似時間反復として働く
         fvVectorMatrix VsEqn
         (
             fvm::div(phiv, Vs)
@@ -113,11 +107,6 @@
           - fSize*(Vs & gradVl)
           + nDrag*time_coeff*Vs
         );
-
-        if (VsDdt)
-        {
-            VsEqn += fvm::ddt(Vs);
-        }
 
         VsEqn.relax();
         solve(VsEqn == -cGradp*gradp);
