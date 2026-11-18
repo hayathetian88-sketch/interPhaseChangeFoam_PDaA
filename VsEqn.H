@@ -12,67 +12,11 @@
     const dimensionedScalar& kw = mixture->kw();
     const dimensionedScalar vSmall("vSmall", dimVelocity, VSMALL);
 
-    // 1. レイノルズ数 Re_b と抗力関数 kd_dynamic
-    volScalarField Re_b("Re_b", (2.0 / rRb) * mag(Vs) / nu);
-    volScalarField Re_eff("Re_eff", max(Re_b, scalar(1e-5)));
-
-    volScalarField kd_SN
-    (
-        "kd_SN",
-        24.0 * (1.0 + 0.15 * pow(Re_eff, 0.687))
-    );
-    volScalarField kd_high("kd_high", 0.44 * Re_eff);
-
-    volScalarField kd_dynamic
-    (
-        "kd_dynamic",
-        max(kd_SN, kd_high) * pow(limitedAlpha1, -0.5)
-    );
-
-    // 2. 緩和時間逆数 time_coeff [1/s]
-    time_coeff =(3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
-
-    //    抗力 f = time_coeff(|Vs|)*Vs の Newton 線形化用の指数 nDrag = dln(Cd Re)/dln Re
-    //    （Schiller-Naumann 側: 0.15*0.687*Re^0.687/(1+0.15 Re^0.687)、Newton 側(0.44Re): 1）
-    //    f ~ (1+nDrag)*time_coeff*Vs - nDrag*time_coeff*Vs*  （Vs* は前反復値。収束すれば元の抗力と一致）
-    volScalarField nDrag
-    (
-        "nDrag",
-        pos0(kd_high - kd_SN)
-      + neg(kd_high - kd_SN)
-       *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687))
-    );
-
-    // fvSolution の PIMPLE 辞書で ON/OFF（既定 OFF）
-    if (!pimple.dict().getOrDefault<bool>("dragNewton", false))
-    {
-        nDrag *= 0.0;
-    }
-
-    Info<< "time_coeff magnitude min: " 
-        << min(time_coeff).value() << " , max: "
-        << max(time_coeff).value() << nl << endl;
-
     // 3. 圧力駆動力の係数 cGradp = 2 * kd / rho1
     const dimensionedScalar cGradp("cGradp", kd.value() * 2.0 / rho1);
 
-    // セル中心の圧力勾配（ガウス積分）
+    // セル中心の圧力勾配（ガウス積分）。内側反復中は p_rgh を固定
     volVectorField gradp("gradp", fvc::grad(p_rgh));
-
-    Vt = -cGradp * gradp / (time_coeff + dimensionedScalar("tcSmall", dimless/dimTime, SMALL));
-    Info<< "Vt magnitude min: " 
-        << min(mag(Vt)).value() << " , max: "
-        << max(mag(Vt)).value() << nl << endl;
-
-    // 4. 気相速度フラックス phiv
-    surfaceScalarField phiv("phiv", phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs);
-    forAll(phiv.boundaryField(), patchi)
-    {
-        if (isA<wallFvPatch>(mesh.boundary()[patchi]))
-        {
-            phiv.boundaryFieldRef()[patchi] = 0.0;
-        }
-    }
 
     // 液相速度 ~ 混合速度 (u_l = U - Y2*Vs で Y2 << 1 の分散気泡近似と整合)
     volTensorField gradVl("gradVl", fvc::grad(U));
@@ -93,32 +37,125 @@
         fSize = dimensionedScalar(dimless, 1.0);
     }
 
-    // 5. スリップ速度輸送方程式
-    //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
-    //    圧力駆動分は pEqn でラプラシアンとして陰的に解く（陽的に入れると kd が大きいとき
-    //    p <-> Vs の反復が発散するため）
-    fvVectorMatrix VsEqn
+    // --- 内側反復の設定（fvSolution の PIMPLE 辞書） ---
+    //   nVsCorr   : VsEqn の内側反復の最大回数（既定 1 = 従来どおり）
+    //   VsCorrTol : 収束判定  max|Vs - Vs_prev| / max|Vs| < VsCorrTol で打ち切り（既定 0 = 毎回 nVsCorr 回）
+    const label nVsCorr = pimple.dict().getOrDefault<label>("nVsCorr", 1);
+    const scalar VsCorrTol = pimple.dict().getOrDefault<scalar>("VsCorrTol", 0.0);
+    const bool dragNewton = pimple.dict().getOrDefault<bool>("dragNewton", false);
+
+    // 内側反復で更新する量（陽に Vs を含むもの）
+    volScalarField Re_b("Re_b", (2.0/rRb)*mag(Vs)/nu);
+    volScalarField nDrag
     (
-        fvm::ddt(Vs)
-      + fvm::div(phiv, Vs)
-      + fvm::SuSp(-fvc::div(phiv), Vs)
-      + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
-     ==
-      - fSize*(Vs & gradVl)
-      + nDrag*time_coeff*Vs
+        IOobject("nDrag", runTime.timeName(), mesh),
+        mesh,
+        dimensionedScalar(dimless, Zero)
     );
+    surfaceScalarField phiv("phiv", phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs);
 
-    VsEqn.relax();
-    solve(VsEqn == -cGradp*gradp);
-
-    // 6. 圧力分解用の係数（キャップ前の Vs で H を評価して分解を厳密に保つ）
+    for (label VsCorr = 0; VsCorr < nVsCorr; ++VsCorr)
     {
-        volScalarField rAVs("rAVs", 1.0/VsEqn.A());
-        HbyVs = rAVs*VsEqn.H();
-        HbyVs.correctBoundaryConditions();
-        DVs = cGradp*rAVs;
-        DVsf = fvc::interpolate(DVs);
+        const volVectorField VsPrev("VsPrev", Vs);
+
+        // 1. レイノルズ数 Re_b と抗力関数 kd_dynamic（最新の Vs で評価）
+        Re_b = (2.0/rRb)*mag(Vs)/nu;
+        const volScalarField Re_eff("Re_eff", max(Re_b, scalar(1e-5)));
+
+        const volScalarField kd_SN
+        (
+            "kd_SN",
+            24.0*(1.0 + 0.15*pow(Re_eff, 0.687))
+        );
+        const volScalarField kd_high("kd_high", 0.44*Re_eff);
+
+        const volScalarField kd_dynamic
+        (
+            "kd_dynamic",
+            max(kd_SN, kd_high)*pow(limitedAlpha1, -0.5)
+        );
+
+        // 2. 緩和時間逆数 time_coeff [1/s]
+        time_coeff = (3.0/8.0)*(kd_dynamic*nu)*(rRb*rRb);
+
+        //    抗力の Newton 線形化用の指数 nDrag = dln(Cd Re)/dln Re（dragNewton 時のみ）
+        if (dragNewton)
+        {
+            nDrag =
+                pos0(kd_high - kd_SN)
+              + neg(kd_high - kd_SN)
+               *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687));
+        }
+
+        // 4. 気相速度フラックス phiv（最新の phiVs で評価）
+        phiv = phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs;
+        forAll(phiv.boundaryField(), patchi)
+        {
+            if (isA<wallFvPatch>(mesh.boundary()[patchi]))
+            {
+                phiv.boundaryFieldRef()[patchi] = 0.0;
+            }
+        }
+
+        // 5. スリップ速度輸送方程式
+        //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
+        //    圧力駆動分は pEqn でラプラシアンとして陰的に解く
+        fvVectorMatrix VsEqn
+        (
+            fvm::ddt(Vs)
+          + fvm::div(phiv, Vs)
+          + fvm::SuSp(-fvc::div(phiv), Vs)
+          + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
+         ==
+          - fSize*(Vs & gradVl)
+          + nDrag*time_coeff*Vs
+        );
+
+        VsEqn.relax();
+        solve(VsEqn == -cGradp*gradp);
+
+        // 6. 圧力分解用の係数（キャップ前の Vs で H を評価して分解を厳密に保つ）
+        {
+            volScalarField rAVs("rAVs", 1.0/VsEqn.A());
+            HbyVs = rAVs*VsEqn.H();
+            HbyVs.correctBoundaryConditions();
+            DVs = cGradp*rAVs;
+            DVsf = fvc::interpolate(DVs);
+        }
+
+        // 7. 面フラックス phiVs（Rhie-Chow 形式。pEqn 後に新しい p_rgh で更新し直される）
+        phiVs = fvc::flux(HbyVs) - DVsf*fvc::snGrad(p_rgh)*mesh.magSf();
+
+        forAll(phiVs.boundaryField(), patchi)
+        {
+            if (!mesh.boundary()[patchi].coupled())
+            {
+                phiVs.boundaryFieldRef()[patchi] = 0.0;
+            }
+        }
+
+        // 収束判定
+        const scalar VsScale = max(gMax(mag(Vs.primitiveField())), SMALL);
+        const scalar VsChange =
+            gMax(mag(Vs.primitiveField() - VsPrev.primitiveField()))/VsScale;
+
+        Info<< "VsCorr " << VsCorr + 1 << "/" << nVsCorr
+            << ": max|dVs|/max|Vs| = " << VsChange << endl;
+
+        if (VsChange < VsCorrTol)
+        {
+            break;
+        }
     }
+
+    Info<< "time_coeff magnitude min: "
+        << min(time_coeff).value() << " , max: "
+        << max(time_coeff).value() << nl << endl;
+
+    Vt = -cGradp * gradp / (time_coeff + dimensionedScalar("tcSmall", dimless/dimTime, SMALL));
+    Info<< "Vt magnitude min: "
+        << min(mag(Vt)).value() << " , max: "
+        << max(mag(Vt)).value() << nl << endl;
 
     // --- 診断: Vs を駆動・抑制している各項の大きさ [m/s2] ---
     {
@@ -160,17 +197,6 @@
             fC.write();
             strainRatio.write();
             nDrag.write();
-        }
-    }
-
-    // 7. 面フラックス phiVs（Rhie-Chow 形式。pEqn 後に新しい p_rgh で更新し直される）
-    phiVs = fvc::flux(HbyVs) - DVsf*fvc::snGrad(p_rgh)*mesh.magSf();
-
-    forAll(phiVs.boundaryField(), patchi)
-    {
-        if (!mesh.boundary()[patchi].coupled())
-        {
-            phiVs.boundaryFieldRef()[patchi] = 0.0;
         }
     }
 
