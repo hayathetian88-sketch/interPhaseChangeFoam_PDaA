@@ -43,6 +43,8 @@
     const label nVsCorr = pimple.dict().getOrDefault<label>("nVsCorr", 1);
     const scalar VsCorrTol = pimple.dict().getOrDefault<scalar>("VsCorrTol", 0.0);
     const bool dragNewton = pimple.dict().getOrDefault<bool>("dragNewton", false);
+    //   VsDdt     : VsEqn に非定常項 fvm::ddt(Vs) を含めるか（既定 false）
+    const bool VsDdt = pimple.dict().getOrDefault<bool>("VsDdt", false);
 
     // 内側反復で更新する量（陽に Vs を含むもの）
     volScalarField Re_b("Re_b", (2.0/rRb)*mag(Vs)/nu);
@@ -100,16 +102,22 @@
         // 5. スリップ速度輸送方程式
         //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
         //    圧力駆動分は pEqn でラプラシアンとして陰的に解く
+        //    VsDdt false（既定）: 非定常項なし（準定常）。内側反復が擬似時間反復として働く
+        //    VsDdt true         : fvm::ddt(Vs) を加える（時間遅れを含む PDA）
         fvVectorMatrix VsEqn
         (
-            fvm::ddt(Vs)
-          + fvm::div(phiv, Vs)
+            fvm::div(phiv, Vs)
           + fvm::SuSp(-fvc::div(phiv), Vs)
           + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
          ==
           - fSize*(Vs & gradVl)
           + nDrag*time_coeff*Vs
         );
+
+        if (VsDdt)
+        {
+            VsEqn += fvm::ddt(Vs);
+        }
 
         VsEqn.relax();
         solve(VsEqn == -cGradp*gradp);
