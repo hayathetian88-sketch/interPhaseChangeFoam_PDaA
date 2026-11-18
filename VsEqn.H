@@ -40,7 +40,7 @@
     // --- 内側反復の設定（fvSolution の PIMPLE 辞書） ---
     //   nVsCorr   : VsEqn の内側反復の最大回数（既定 1 = 従来どおり）
     //   VsCorrTol : 収束判定  max|Vs - Vs_prev| / max|Vs| < VsCorrTol で打ち切り（既定 0 = 毎回 nVsCorr 回）
-    const label nVsCorr = pimple.dict().getOrDefault<label>("nVsCorr", 1);
+    const label nVsCorr = max(pimple.dict().getOrDefault<label>("nVsCorr", 1), label(1));
     const scalar VsCorrTol = pimple.dict().getOrDefault<scalar>("VsCorrTol", 0.0);
 
     // 内側反復で更新する量（陽に Vs を含むもの）
@@ -51,7 +51,18 @@
         mesh,
         dimensionedScalar(dimless, Zero)
     );
+
+    // 4. 気相速度フラックス phiv（pEqn で更新された phiVs を使用し、内側反復中は固定）
     surfaceScalarField phiv("phiv", phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs);
+    forAll(phiv.boundaryField(), patchi)
+    {
+        if (isA<wallFvPatch>(mesh.boundary()[patchi]))
+        {
+            phiv.boundaryFieldRef()[patchi] = 0.0;
+        }
+    }
+
+    tmp<fvVectorMatrix> tVsEqn;
 
     for (label VsCorr = 0; VsCorr < nVsCorr; ++VsCorr)
     {
@@ -84,32 +95,44 @@
           + neg(kd_high - kd_SN)
            *(0.15*0.687*pow(Re_eff, 0.687))/(1.0 + 0.15*pow(Re_eff, 0.687));
 
-        // 4. 気相速度フラックス phiv（最新の phiVs で評価）
-        phiv = phi + fvc::interpolate((rho1/rho)*limitedAlpha1)*phiVs;
-        forAll(phiv.boundaryField(), patchi)
-        {
-            if (isA<wallFvPatch>(mesh.boundary()[patchi]))
-            {
-                phiv.boundaryFieldRef()[patchi] = 0.0;
-            }
-        }
-
         // 5. スリップ速度輸送方程式
         //    圧力勾配項は行列に含めずに組み立て、Vs = HbyVs - DVs*grad(p_rgh) と分解する。
         //    圧力駆動分は pEqn でラプラシアンとして陰的に解く
         //    非定常項なし（準定常）。内側反復が擬似時間反復として働く
-        fvVectorMatrix VsEqn
+        tVsEqn = tmp<fvVectorMatrix>
         (
-            fvm::div(phiv, Vs)
-          + fvm::SuSp(-fvc::div(phiv), Vs)
-          + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
-         ==
-          - fSize*(Vs & gradVl)
-          + nDrag*time_coeff*Vs
+            new fvVectorMatrix
+            (
+                fvm::div(phiv, Vs)
+              + fvm::SuSp(-fvc::div(phiv), Vs)
+              + fvm::Sp((1.0 + nDrag)*time_coeff, Vs)
+             ==
+              - fSize*(Vs & gradVl)
+              + nDrag*time_coeff*Vs
+            )
         );
+        fvVectorMatrix& VsEqn = tVsEqn.ref();
 
         VsEqn.relax();
         solve(VsEqn == -cGradp*gradp);
+
+        // 収束判定
+        const scalar VsScale = max(gMax(mag(Vs.primitiveField())), SMALL);
+        const scalar VsChange =
+            gMax(mag(Vs.primitiveField() - VsPrev.primitiveField()))/VsScale;
+
+        Info<< "VsCorr " << VsCorr + 1 << "/" << nVsCorr
+            << ": max|dVs|/max|Vs| = " << VsChange << endl;
+
+        if (VsChange < VsCorrTol)
+        {
+            break;
+        }
+    }
+
+    // 内側反復の最終結果の VsEqn から圧力分解用の係数と phiVs を作る（反復の外で1回だけ）
+    {
+        fvVectorMatrix& VsEqn = tVsEqn.ref();
 
         // 6. 圧力分解用の係数（キャップ前の Vs で H を評価して分解を厳密に保つ）
         {
@@ -129,19 +152,6 @@
             {
                 phiVs.boundaryFieldRef()[patchi] = 0.0;
             }
-        }
-
-        // 収束判定
-        const scalar VsScale = max(gMax(mag(Vs.primitiveField())), SMALL);
-        const scalar VsChange =
-            gMax(mag(Vs.primitiveField() - VsPrev.primitiveField()))/VsScale;
-
-        Info<< "VsCorr " << VsCorr + 1 << "/" << nVsCorr
-            << ": max|dVs|/max|Vs| = " << VsChange << endl;
-
-        if (VsChange < VsCorrTol)
-        {
-            break;
         }
     }
 
